@@ -20,6 +20,36 @@ abstract final class AppStrings {
   static const String noAccount = "Don't have an account? ";
   static const String haveAccount = 'Already have an account? ';
   static const String selectDob = 'Select Date of Birth';
+  static const String logout = 'Logout';
+
+  // ── Navigation (Bottom Tabs) ──
+  static const String dashboardLabel = 'Dashboard';
+  static const String todosLabel = 'Todos';
+  static const String expensesLabel = 'Expenses';
+  static const String healthLabel = 'Health';
+  static const String moreLabel = 'More';
+
+  // ── Dashboard ──
+  static const String welcomeBack = 'Welcome back 👋';
+  static const String dashboardSubtitle = 'Here\'s your day at a glance';
+  static const String streakLabel = 'Streak';
+  static const String comingSoon = 'Coming Soon';
+
+  // ── More Sub-features ──
+  static const String profile = 'Profile';
+  static const String settings = 'Settings';
+  static const String photosLabel = 'Photos';
+  static const String restaurantsLabel = 'Restaurants';
+  static const String moviesLabel = 'Movies';
+  static const String thoughtsLabel = 'Thoughts';
+  static const String booksLabel = 'Books';
+  static const String visionBoardLabel = 'Vision Board';
+  static const String lifeLessonsLabel = 'Life Lessons';
+  static const String learningsLabel = 'Learnings';
+  static const String firstTimeLabel = 'First Time Experiences';
+  static const String moodBoardLabel = 'Mood Board';
+  static const String placesVisitedLabel = 'Places Visited';
+  static const String miscellaneousLabel = 'Miscellaneous';
 
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';

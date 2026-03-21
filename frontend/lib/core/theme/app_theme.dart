@@ -55,6 +55,19 @@ abstract final class AppTheme {
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusSm),
         ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.lightSurface,
+          indicatorColor: AppColors.primary.withValues(alpha: 0.12),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          height: 64,
+          elevation: 0,
+        ),
+        listTileTheme: const ListTileThemeData(
+          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusSm)),
+          ),
+        ),
       );
 
   // ── Dark Theme ──
@@ -105,6 +118,19 @@ abstract final class AppTheme {
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusSm),
+        ),
+        navigationBarTheme: NavigationBarThemeData(
+          backgroundColor: AppColors.darkSurface,
+          indicatorColor: AppColors.primaryLight.withValues(alpha: 0.15),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          height: 64,
+          elevation: 0,
+        ),
+        listTileTheme: const ListTileThemeData(
+          contentPadding: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(AppSpacing.radiusSm)),
+          ),
         ),
       );
 
