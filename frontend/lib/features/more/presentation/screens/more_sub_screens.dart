@@ -2,11 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chronicle/core/widgets/coming_soon_screen.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 
-class PhotosScreen extends StatelessWidget {
-  const PhotosScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.photosLabel, icon: Icons.photo_library_outlined);
-}
+// Removed duplicate PhotosScreen placeholder
 
 class RestaurantsScreen extends StatelessWidget {
   const RestaurantsScreen({super.key});

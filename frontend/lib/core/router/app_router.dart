@@ -11,6 +11,7 @@ import 'package:chronicle/features/expenses/presentation/screens/expenses_screen
 import 'package:chronicle/features/health/presentation/screens/health_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_sub_screens.dart';
+import 'package:chronicle/features/photos/presentation/screens/photos_screen.dart';
 
 /// Chronicle — Declarative Router with auth guard + session handling
 class AppRouter {
