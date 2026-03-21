@@ -1,3 +1,5 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 /// Abstract interface for authentication.
 /// Decouples domain logic from data layer.
 abstract class AuthRepository {
@@ -17,4 +19,5 @@ abstract class AuthRepository {
   Future<void> signOut();
 
   bool get isAuthenticated;
+  User? get currentUser;
 }

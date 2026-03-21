@@ -26,13 +26,13 @@ class MoreScreen extends ConsumerWidget {
             leading: const Icon(Icons.person_outline),
             title: const Text(AppStrings.profile),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
+            onTap: () => context.push('/more/profile'),
           ),
           ListTile(
             leading: const Icon(Icons.settings_outlined),
             title: const Text(AppStrings.settings),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () {},
+            onTap: () => context.push('/more/settings'),
           ),
           AppSpacing.gapMd,
           FilledButton.tonal(

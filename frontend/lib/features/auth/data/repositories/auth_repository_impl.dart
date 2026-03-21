@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:chronicle/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:chronicle/features/auth/domain/repositories/auth_repository.dart';
 import 'package:chronicle/core/errors/error_handler.dart';
@@ -63,4 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   bool get isAuthenticated => _datasource.currentSession != null;
+
+  @override
+  User? get currentUser => _datasource.currentUser;
 }

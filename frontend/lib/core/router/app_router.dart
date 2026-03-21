@@ -10,6 +10,7 @@ import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart'
 import 'package:chronicle/features/expenses/presentation/screens/expenses_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_sub_screens.dart';
+import 'package:chronicle/features/more/presentation/screens/account_screens.dart';
 import 'package:chronicle/features/photos/presentation/screens/photos_screen.dart';
 import 'package:chronicle/features/restaurants/presentation/screens/restaurants_screen.dart';
 import 'package:chronicle/features/restaurants/presentation/screens/restaurant_details_screen.dart';
@@ -149,6 +150,8 @@ class AppRouter {
       GoRoute(path: '/more/mood-board', builder: (context, state) => const MoodBoardScreen()),
       GoRoute(path: '/more/places-visited', builder: (context, state) => const PlacesVisitedScreen()),
       GoRoute(path: '/more/miscellaneous', builder: (context, state) => const MiscellaneousScreen()),
+      GoRoute(path: '/more/profile', builder: (context, state) => const ProfileScreen()),
+      GoRoute(path: '/more/settings', builder: (context, state) => const SettingsScreen()),
     ],
   );
 }
