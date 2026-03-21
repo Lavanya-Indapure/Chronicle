@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:equatable/equatable.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:chronicle/features/health/domain/models/health_models.dart';
+import 'package:chronicle/features/health/data/repositories/hydration_repository_impl.dart';
+import 'package:chronicle/features/health/data/datasources/hydration_remote_datasource_impl.dart';
 
 class HydrationState extends Equatable {
   final bool isLoading;
@@ -19,26 +22,80 @@ class HydrationState extends Equatable {
 }
 
 class HydrationController extends Notifier<HydrationState> {
+  late final HydrationRepositoryImpl _repository;
+
   @override
   HydrationState build() {
-    return HydrationState(reminders: List.generate(10, (i) => HydrationReminder(
-      id: i.toString(), 
-      status: 'PENDING',
-      scheduledTime: DateTime.now(),
-    )));
+    _repository = HydrationRepositoryImpl(HydrationRemoteDatasourceImpl(Supabase.instance.client));
+    _loadTodayLogs();
+    return const HydrationState(isLoading: true);
   }
 
-  void markAsDone(String id) {
-    state = HydrationState(
-      isLoading: state.isLoading,
-      reminders: state.reminders.map((r) => r.id == id ? HydrationReminder(id: id, status: 'DONE', scheduledTime: r.scheduledTime) : r).toList(),
+  Future<void> _loadTodayLogs() async {
+    try {
+      final logs = await _repository.getTodayLogs();
+      _generateReminders(logs);
+    } catch (e) {
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  void _generateReminders(List<HydrationReminder> logs) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    
+    // Ideal: fetch from settings. Current: 6 AM to 10 PM every 60 mins (17 slots)
+    final List<HydrationReminder> reminders = [];
+    for (int i = 0; i < 17; i++) {
+      final scheduledTime = today.add(Duration(hours: 6 + i));
+      
+      // Check if we have a log for this specific hour
+      final log = logs.firstWhere(
+        (l) => l.logTime.hour == scheduledTime.hour,
+        orElse: () => HydrationReminder(
+          id: 'temp_$i',
+          userId: '',
+          logDate: today,
+          logTime: scheduledTime,
+          status: 'PENDING',
+        ),
+      );
+      reminders.add(log);
+    }
+    
+    state = HydrationState(isLoading: false, reminders: reminders);
+  }
+
+  Future<void> markAsDone(HydrationReminder reminder) async {
+    final updated = HydrationReminder(
+      id: reminder.id.startsWith('temp_') ? '' : reminder.id,
+      userId: '',
+      logDate: reminder.logDate,
+      logTime: reminder.logTime,
+      status: 'DONE',
     );
+    await _repository.logHydration(updated);
+    _loadTodayLogs();
   }
 
-  void markAsSkipped(String id) {
-    state = HydrationState(
-      isLoading: state.isLoading,
-      reminders: state.reminders.map((r) => r.id == id ? HydrationReminder(id: id, status: 'SKIPPED', scheduledTime: r.scheduledTime) : r).toList(),
+  Future<void> markAsSkipped(HydrationReminder reminder) async {
+    final updated = HydrationReminder(
+      id: reminder.id.startsWith('temp_') ? '' : reminder.id,
+      userId: '',
+      logDate: reminder.logDate,
+      logTime: reminder.logTime,
+      status: 'SKIPPED',
+    );
+    await _repository.logHydration(updated);
+    _loadTodayLogs();
+  }
+}
+
+extension on HydrationState {
+  HydrationState copyWith({bool? isLoading, List<HydrationReminder>? reminders}) {
+    return HydrationState(
+      isLoading: isLoading ?? this.isLoading,
+      reminders: reminders ?? this.reminders,
     );
   }
 }

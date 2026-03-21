@@ -8,7 +8,6 @@ import 'package:chronicle/features/auth/presentation/screens/signup_screen.dart'
 import 'package:chronicle/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
 import 'package:chronicle/features/expenses/presentation/screens/expenses_screen.dart';
-import 'package:chronicle/features/health/presentation/screens/health_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_screen.dart';
 import 'package:chronicle/features/more/presentation/screens/more_sub_screens.dart';
 import 'package:chronicle/features/photos/presentation/screens/photos_screen.dart';
@@ -100,7 +99,13 @@ class AppRouter {
             routes: [
               GoRoute(
                 path: '/health',
-                builder: (context, state) => const HealthScreen(),
+                builder: (context, state) => const HealthHomeScreen(),
+                routes: [
+                  GoRoute(path: 'hydration', builder: (context, state) => const HydrationScreen()),
+                  GoRoute(path: 'sleep', builder: (context, state) => const SleepScreen()),
+                  GoRoute(path: 'activity', builder: (context, state) => const ActivityScreen()),
+                  GoRoute(path: 'settings', builder: (context, state) => const HealthSettingsScreen()),
+                ],
               ),
             ],
           ),
@@ -141,16 +146,6 @@ class AppRouter {
       GoRoute(path: '/more/life-lessons', builder: (context, state) => const LifeLessonsScreen()),
       GoRoute(path: '/more/learnings', builder: (context, state) => const LearningsScreen()),
       GoRoute(path: '/more/first-time', builder: (context, state) => const FirstTimeExperiencesScreen()),
-       GoRoute(
-         path: '/more/health', 
-         builder: (context, state) => const HealthHomeScreen(),
-         routes: [
-           GoRoute(path: 'hydration', builder: (context, state) => const HydrationScreen()),
-           GoRoute(path: 'sleep', builder: (context, state) => const SleepScreen()),
-           GoRoute(path: 'activity', builder: (context, state) => const ActivityScreen()),
-           GoRoute(path: 'settings', builder: (context, state) => const HealthSettingsScreen()),
-         ],
-       ),
       GoRoute(path: '/more/mood-board', builder: (context, state) => const MoodBoardScreen()),
       GoRoute(path: '/more/places-visited', builder: (context, state) => const PlacesVisitedScreen()),
       GoRoute(path: '/more/miscellaneous', builder: (context, state) => const MiscellaneousScreen()),

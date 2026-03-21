@@ -75,9 +75,7 @@ class _HydrationReminderTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final time = 6 * 60 + (index * 60); // Simple time calc starting 6:00 AM
-    final hour = time ~/ 60;
-    final displayTime = '${hour.toString().padLeft(2, '0')}:00';
+    final displayTime = '${reminder.logTime.hour.toString().padLeft(2, '0')}:00';
 
     return Card(
       child: ListTile(
@@ -90,8 +88,8 @@ class _HydrationReminderTile extends StatelessWidget {
         trailing: reminder.status == 'PENDING' ? Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(onPressed: () => ref.read(hydrationControllerProvider.notifier).markAsDone(reminder.id), icon: const Icon(Icons.done, color: Colors.green)),
-            IconButton(onPressed: () => ref.read(hydrationControllerProvider.notifier).markAsSkipped(reminder.id), icon: const Icon(Icons.close, color: Colors.red)),
+            IconButton(onPressed: () => ref.read(hydrationControllerProvider.notifier).markAsDone(reminder), icon: const Icon(Icons.done, color: Colors.green)),
+            IconButton(onPressed: () => ref.read(hydrationControllerProvider.notifier).markAsSkipped(reminder), icon: const Icon(Icons.close, color: Colors.red)),
           ],
         ) : null,
       ),

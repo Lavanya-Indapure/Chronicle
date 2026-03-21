@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
-import 'package:chronicle/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:chronicle/core/utils/dialog_utils.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -36,10 +36,7 @@ class MoreScreen extends ConsumerWidget {
           ),
           AppSpacing.gapMd,
           FilledButton.tonal(
-            onPressed: () async {
-              await ref.read(authControllerProvider.notifier).signOut();
-              if (context.mounted) context.go('/login');
-            },
+            onPressed: () => DialogUtils.showLogoutDialog(context, ref),
             child: const Text(AppStrings.logout),
           ),
           AppSpacing.gapLg,
