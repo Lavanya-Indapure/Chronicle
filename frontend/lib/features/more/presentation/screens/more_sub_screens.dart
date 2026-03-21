@@ -6,11 +6,7 @@ import 'package:chronicle/core/constants/app_strings.dart';
 
 // Removed duplicate RestaurantsScreen placeholder
 
-class MoviesScreen extends StatelessWidget {
-  const MoviesScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.moviesLabel, icon: Icons.movie_outlined);
-}
+// Removed duplicate MoviesScreen placeholder
 
 // Removed duplicate ThoughtsScreen placeholder
 
