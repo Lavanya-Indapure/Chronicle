@@ -63,6 +63,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<void> resetPassword(String email) async {
+    try {
+      await _datasource.resetPassword(email);
+      LoggerService.info('Password reset email sent: $email', tag: 'Auth');
+    } catch (e, st) {
+      LoggerService.error('Password reset failed', error: e, stackTrace: st, tag: 'Auth');
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  @override
   bool get isAuthenticated => _datasource.currentSession != null;
 
   @override

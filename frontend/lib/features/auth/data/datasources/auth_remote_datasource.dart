@@ -33,6 +33,10 @@ class AuthRemoteDatasource {
     await _client.auth.signOut();
   }
 
+  Future<void> resetPassword(String email) async {
+    await _client.auth.resetPasswordForEmail(email);
+  }
+
   Session? get currentSession => _client.auth.currentSession;
 
   User? get currentUser => _client.auth.currentUser;

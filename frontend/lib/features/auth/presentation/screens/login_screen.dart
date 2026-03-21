@@ -112,7 +112,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     },
                     onFieldSubmitted: (_) => _handleLogin(),
                   ),
-                  AppSpacing.gapLg,
+                  AppSpacing.gapSm,
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => context.go('/forgot-password'),
+                      child: const Text(AppStrings.forgotPassword),
+                    ),
+                  ),
+                  AppSpacing.gapMd,
 
                   // Submit
                   AuthSubmitButton(

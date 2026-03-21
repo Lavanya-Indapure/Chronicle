@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:chronicle/core/widgets/app_shell.dart';
 import 'package:chronicle/features/auth/presentation/screens/login_screen.dart';
 import 'package:chronicle/features/auth/presentation/screens/signup_screen.dart';
+import 'package:chronicle/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:chronicle/features/auth/presentation/screens/reset_password_screen.dart';
 import 'package:chronicle/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
 import 'package:chronicle/features/expenses/presentation/screens/expenses_screen.dart';
@@ -48,7 +50,7 @@ class AppRouter {
       final session = Supabase.instance.client.auth.currentSession;
       final isAuth = session != null;
       final location = state.matchedLocation;
-      final isAuthRoute = location == '/login' || location == '/signup';
+      final isAuthRoute = location == '/login' || location == '/signup' || location == '/forgot-password';
 
       if (!isAuth && !isAuthRoute) return '/login';
       if (isAuth && isAuthRoute) return '/dashboard';
@@ -64,6 +66,14 @@ class AppRouter {
       GoRoute(
         path: '/signup',
         builder: (context, state) => const SignupScreen(),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
 
       // ── Main App (with bottom nav) ──

@@ -84,6 +84,18 @@ class AuthController extends Notifier<AuthState> {
     state = const AuthState();
   }
 
+  Future<bool> resetPassword(String email) async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      await _repository.resetPassword(email);
+      state = state.copyWith(status: AuthStatus.success);
+      return true;
+    } on AppException catch (e) {
+      state = state.copyWith(status: AuthStatus.error, errorMessage: e.message);
+      return false;
+    }
+  }
+
   void resetState() {
     state = const AuthState();
   }

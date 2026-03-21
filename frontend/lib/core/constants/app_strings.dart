@@ -21,6 +21,11 @@ abstract final class AppStrings {
   static const String haveAccount = 'Already have an account? ';
   static const String selectDob = 'Select Date of Birth';
   static const String logout = 'Logout';
+  static const String forgotPassword = 'Forgot Password?';
+  static const String resetPassword = 'Reset Password';
+  static const String sendResetLink = 'Send Reset Link';
+  static const String resetEmailSent = 'Password reset email sent! Please check your inbox.';
+  static const String backToLogin = 'Back to Login';
 
   // ── Navigation (Bottom Tabs) ──
   static const String dashboardLabel = 'Dashboard';
