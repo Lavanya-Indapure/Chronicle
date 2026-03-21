@@ -12,17 +12,9 @@ class MoviesScreen extends StatelessWidget {
   Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.moviesLabel, icon: Icons.movie_outlined);
 }
 
-class ThoughtsScreen extends StatelessWidget {
-  const ThoughtsScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.thoughtsLabel, icon: Icons.lightbulb_outline);
-}
+// Removed duplicate ThoughtsScreen placeholder
 
-class BooksScreen extends StatelessWidget {
-  const BooksScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.booksLabel, icon: Icons.menu_book_outlined);
-}
+// Removed duplicate BooksScreen placeholder
 
 class VisionBoardScreen extends StatelessWidget {
   const VisionBoardScreen({super.key});

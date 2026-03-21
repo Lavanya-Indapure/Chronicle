@@ -15,6 +15,8 @@ import 'package:chronicle/features/photos/presentation/screens/photos_screen.dar
 import 'package:chronicle/features/restaurants/presentation/screens/restaurants_screen.dart';
 import 'package:chronicle/features/restaurants/presentation/screens/restaurant_details_screen.dart';
 import 'package:chronicle/features/restaurants/domain/models/restaurant.dart';
+import 'package:chronicle/features/thoughts/presentation/screens/thoughts_screen.dart';
+import 'package:chronicle/features/books/presentation/screens/books_screen.dart';
 
 /// Chronicle — Declarative Router with auth guard + session handling
 class AppRouter {
@@ -110,9 +112,9 @@ class AppRouter {
           return RestaurantDetailsScreen(restaurant: restaurant);
         },
       ),
-      GoRoute(path: '/more/movies', builder: (context, state) => const MoviesScreen()),
       GoRoute(path: '/more/thoughts', builder: (context, state) => const ThoughtsScreen()),
       GoRoute(path: '/more/books', builder: (context, state) => const BooksScreen()),
+      GoRoute(path: '/more/movies', builder: (context, state) => const MoviesScreen()),
       GoRoute(path: '/more/vision-board', builder: (context, state) => const VisionBoardScreen()),
       GoRoute(path: '/more/life-lessons', builder: (context, state) => const LifeLessonsScreen()),
       GoRoute(path: '/more/learnings', builder: (context, state) => const LearningsScreen()),
