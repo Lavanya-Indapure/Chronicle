@@ -35,6 +35,22 @@ abstract final class AppStrings {
   static const String streakLabel = 'Streak';
   static const String comingSoon = 'Coming Soon';
 
+  // ── Todos ──
+  static const String addTodo = 'Add Todo';
+  static const String editTodo = 'Edit Todo';
+  static const String priorityLabel = 'Priority';
+  static const String descriptionLabel = 'Description';
+  static const String todoTitle = 'Title';
+  static const String frequency = 'Frequency';
+  static const String saveChanges = 'Save Changes';
+  static const String noTodosYet = 'No todos for today';
+  static const String addFirstTodo = 'Tap + to add your first todo';
+  static const String carriedForward = 'Carried Forward';
+  static const String deleteTodoTitle = 'Delete Todo';
+  static const String deleteTodoMessage = 'Are you sure you want to delete';
+  static const String cancel = 'Cancel';
+  static const String delete = 'Delete';
+
   // ── More Sub-features ──
   static const String profile = 'Profile';
   static const String settings = 'Settings';
