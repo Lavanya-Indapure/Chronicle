@@ -12,11 +12,6 @@ import 'package:chronicle/core/constants/app_strings.dart';
 
 // Removed duplicate BooksScreen placeholder
 
-class VisionBoardScreen extends StatelessWidget {
-  const VisionBoardScreen({super.key});
-  @override
-  Widget build(BuildContext context) => const ComingSoonScreen(title: AppStrings.visionBoardLabel, icon: Icons.dashboard_customize_outlined);
-}
 
 class LifeLessonsScreen extends StatelessWidget {
   const LifeLessonsScreen({super.key});

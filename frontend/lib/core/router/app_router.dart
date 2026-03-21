@@ -18,6 +18,9 @@ import 'package:chronicle/features/restaurants/domain/models/restaurant.dart';
 import 'package:chronicle/features/thoughts/presentation/screens/thoughts_screen.dart';
 import 'package:chronicle/features/books/presentation/screens/books_screen.dart';
 import 'package:chronicle/features/movies/presentation/screens/movies_screen.dart';
+import 'package:chronicle/features/vision_board/presentation/screens/vision_board_screen.dart';
+import 'package:chronicle/features/vision_board/presentation/screens/vision_goal_details_screen.dart';
+import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 
 /// Chronicle — Declarative Router with auth guard + session handling
 class AppRouter {
@@ -113,10 +116,19 @@ class AppRouter {
           return RestaurantDetailsScreen(restaurant: restaurant);
         },
       ),
-      GoRoute(path: '/more/thoughts', builder: (context, state) => const ThoughtsScreen()),
-      GoRoute(path: '/more/books', builder: (context, state) => const BooksScreen()),
-      GoRoute(path: '/more/movies', builder: (context, state) => const MoviesScreen()),
-      GoRoute(path: '/more/vision-board', builder: (context, state) => const VisionBoardScreen()),
+       GoRoute(path: '/more/thoughts', builder: (context, state) => const ThoughtsScreen()),
+       GoRoute(path: '/more/books', builder: (context, state) => const BooksScreen()),
+       GoRoute(path: '/more/movies', builder: (context, state) => const MoviesScreen()),
+       GoRoute(
+         path: '/more/vision-board', 
+         builder: (context, state) => const VisionBoardScreen(),
+         routes: [
+           GoRoute(
+             path: 'details', 
+             builder: (context, state) => VisionGoalDetailsScreen(goal: state.extra as VisionGoal),
+           ),
+         ],
+       ),
       GoRoute(path: '/more/life-lessons', builder: (context, state) => const LifeLessonsScreen()),
       GoRoute(path: '/more/learnings', builder: (context, state) => const LearningsScreen()),
       GoRoute(path: '/more/first-time', builder: (context, state) => const FirstTimeExperiencesScreen()),
