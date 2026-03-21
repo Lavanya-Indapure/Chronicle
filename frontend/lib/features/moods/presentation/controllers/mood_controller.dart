@@ -32,12 +32,16 @@ class MoodState extends Equatable {
   @override List<Object?> get props => [isLoading, moods];
 }
 
+final moodRepositoryProvider = Provider((ref) {
+  return MoodRepositoryImpl(MoodRemoteDatasourceImpl(Supabase.instance.client));
+});
+
 class MoodController extends Notifier<MoodState> {
   late final MoodRepositoryImpl _repository;
 
   @override
   MoodState build() {
-    _repository = MoodRepositoryImpl(MoodRemoteDatasourceImpl(Supabase.instance.client));
+    _repository = ref.watch(moodRepositoryProvider) as MoodRepositoryImpl;
     _loadMoods();
     return const MoodState();
   }

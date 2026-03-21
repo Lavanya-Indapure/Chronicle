@@ -34,12 +34,16 @@ class LearningState extends Equatable {
   @override List<Object?> get props => [isLoading, learnings, searchQuery];
 }
 
+final learningRepositoryProvider = Provider((ref) {
+  return LearningRepositoryImpl(LearningRemoteDatasourceImpl(Supabase.instance.client));
+});
+
 class LearningController extends Notifier<LearningState> {
   late final LearningRepositoryImpl _repository;
 
   @override
   LearningState build() {
-    _repository = LearningRepositoryImpl(LearningRemoteDatasourceImpl(Supabase.instance.client));
+    _repository = ref.watch(learningRepositoryProvider) as LearningRepositoryImpl;
     _loadLearnings();
     return const LearningState();
   }

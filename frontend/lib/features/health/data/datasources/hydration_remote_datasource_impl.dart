@@ -23,6 +23,23 @@ class HydrationRemoteDatasourceImpl implements HydrationRemoteDatasource {
   }
 
   @override
+  Future<List<HydrationReminder>> getLogsBetweenDates(DateTime start, DateTime end) async {
+    try {
+      final startStr = start.toIso8601String().split('T')[0];
+      final endStr = end.toIso8601String().split('T')[0];
+      final response = await _client
+          .from('hydration_logs')
+          .select()
+          .gte('log_date', startStr)
+          .lte('log_date', endStr);
+      
+      return (response as List).map((json) => HydrationReminder.fromJson(json)).toList();
+    } catch (e) {
+      throw AppException('Failed to fetch hydration logs between dates: $e');
+    }
+  }
+
+  @override
   Future<void> logHydration(HydrationReminder log) async {
     try {
       final data = log.toJson();

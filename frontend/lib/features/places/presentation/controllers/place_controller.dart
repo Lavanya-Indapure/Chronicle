@@ -34,12 +34,16 @@ class PlaceState extends Equatable {
   @override List<Object?> get props => [isLoading, places, searchQuery];
 }
 
+final placeRepositoryProvider = Provider((ref) {
+  return PlaceRepositoryImpl(PlaceRemoteDatasourceImpl(Supabase.instance.client));
+});
+
 class PlaceController extends Notifier<PlaceState> {
   late final PlaceRepositoryImpl _repository;
 
   @override
   PlaceState build() {
-    _repository = PlaceRepositoryImpl(PlaceRemoteDatasourceImpl(Supabase.instance.client));
+    _repository = ref.watch(placeRepositoryProvider) as PlaceRepositoryImpl;
     _loadPlaces();
     return const PlaceState();
   }

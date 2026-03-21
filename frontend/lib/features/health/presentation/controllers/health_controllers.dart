@@ -21,12 +21,16 @@ class HydrationState extends Equatable {
   @override List<Object?> get props => [isLoading, reminders];
 }
 
+final hydrationRepositoryProvider = Provider((ref) {
+  return HydrationRepositoryImpl(HydrationRemoteDatasourceImpl(Supabase.instance.client));
+});
+
 class HydrationController extends Notifier<HydrationState> {
   late final HydrationRepositoryImpl _repository;
 
   @override
   HydrationState build() {
-    _repository = HydrationRepositoryImpl(HydrationRemoteDatasourceImpl(Supabase.instance.client));
+    _repository = ref.watch(hydrationRepositoryProvider) as HydrationRepositoryImpl;
     _loadTodayLogs();
     return const HydrationState(isLoading: true);
   }

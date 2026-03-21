@@ -35,6 +35,19 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
+  Future<List<TodoInstance>> getInstancesBetweenDates(DateTime start, DateTime end) async {
+    try {
+      final startStr = start.toIso8601String().split('T').first;
+      final endStr = end.toIso8601String().split('T').first;
+      final data = await _datasource.getInstancesBetweenDates(startStr, endStr);
+      return data.map(TodoInstance.fromJson).toList();
+    } catch (e, st) {
+      LoggerService.error('Failed to fetch instances between dates', error: e, stackTrace: st, tag: 'Todo');
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  @override
   Future<void> createTodo({
     required String title,
     String? description,

@@ -9,6 +9,9 @@ abstract class TodoRepository {
   /// Fetch todo instances for a given date.
   Future<List<TodoInstance>> getInstancesForDate(DateTime date);
 
+  /// Fetch todo instances between two dates (inclusive).
+  Future<List<TodoInstance>> getInstancesBetweenDates(DateTime start, DateTime end);
+
   /// Create a new template + its first instance for today.
   Future<void> createTodo({
     required String title,

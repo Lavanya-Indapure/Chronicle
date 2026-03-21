@@ -10,6 +10,9 @@ class HydrationRepositoryImpl implements HydrationRepository {
   Future<List<HydrationReminder>> getTodayLogs() => _datasource.getTodayLogs();
 
   @override
+  Future<List<HydrationReminder>> getLogsBetweenDates(DateTime start, DateTime end) => _datasource.getLogsBetweenDates(start, end);
+
+  @override
   Future<void> logHydration(HydrationReminder log) => _datasource.logHydration(log);
 
   @override

@@ -36,6 +36,19 @@ class TodoRemoteDatasource {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// Fetch instances between two dates (inclusive).
+  Future<List<Map<String, dynamic>>> getInstancesBetweenDates(String startDateStr, String endDateStr) async {
+    final currentUserId = userId;
+    final response = await client
+        .from('todo_instances')
+        .select('*')
+        .eq('user_id', currentUserId)
+        .gte('scheduled_date', startDateStr)
+        .lte('scheduled_date', endDateStr)
+        .order('scheduled_date', ascending: true);
+    return List<Map<String, dynamic>>.from(response);
+  }
+
   /// Insert a new template.
   Future<Map<String, dynamic>> insertTemplate(Map<String, dynamic> data) async {
     final response = await client
