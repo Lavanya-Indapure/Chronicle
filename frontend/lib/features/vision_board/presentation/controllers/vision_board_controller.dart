@@ -66,7 +66,9 @@ class VisionBoardState extends Equatable {
       if (searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
         if (!g.title.toLowerCase().contains(query) && 
-            !(g.category?.toLowerCase().contains(query) ?? false)) return false;
+            !(g.category?.toLowerCase().contains(query) ?? false)) {
+          return false;
+        }
       }
       return true;
     }).toList();

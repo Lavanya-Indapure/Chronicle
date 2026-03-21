@@ -44,7 +44,7 @@ class ThoughtsScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 scrollDirection: Axis.horizontal,
                 itemCount: allTags.length + 1,
-                separatorBuilder: (_, __) => AppSpacing.gapSm,
+                separatorBuilder: (_, _) => AppSpacing.gapSm,
                 itemBuilder: (context, index) {
                   if (index == 0) {
                     return FilterChip(
