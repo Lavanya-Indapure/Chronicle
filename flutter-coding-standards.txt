@@ -1,0 +1,326 @@
+## 🎯 Objective
+
+Build a scalable, maintainable, and production-ready Flutter application following strict engineering best practices. The system must avoid hardcoding, enforce separation of concerns, and be structured for long-term extensibility.
+I 
+---
+
+Design the app with a modern, minimal, and premium UI/UX (similar to Notion/Linear/Apple).
+
+* Use a clean design with lots of whitespace and no clutter
+* Follow a consistent color system (neutral base + one accent color)
+* No hardcoded colors, spacing, or styles — everything must come from theme
+* Use clear typography hierarchy (heading, subheading, body)
+* Maintain consistent spacing (8pt system)
+* Components should have soft rounded corners and subtle shadows
+* Add smooth, minimal animations (fast and non-distracting)
+* Support both light and dark mode
+* Ensure high readability and simple, intuitive UX
+
+Goal: The app should feel premium, calm, and professional.
+
+
+## 🧱 1. Project Architecture
+
+Follow a **feature-first + layered architecture**:
+
+```
+lib/
+  core/
+    constants/
+    theme/
+    utils/
+    services/
+    widgets/
+    errors/
+
+  features/
+    <feature_name>/
+      data/
+        models/
+        repositories/
+        datasources/
+      domain/
+        entities/
+        usecases/
+      presentation/
+        screens/
+        widgets/
+        controllers/ (or bloc/viewmodel)
+
+  main.dart
+```
+
+### Rules:
+
+* No business logic in UI
+* No API calls inside widgets
+* Strict separation: **UI ↔ Domain ↔ Data**
+
+---
+
+## 🎨 2. Theming & Design System (NO Hardcoding)
+
+### ❌ Strictly Forbidden:
+
+* Hardcoded colors (`Colors.red`, `Color(0xFF...)`)
+* Hardcoded padding, margin, font sizes
+* Hardcoded strings (except test/dev)
+
+### ✅ Must Have:
+
+#### Colors
+
+* Define in: `core/theme/app_colors.dart`
+
+#### Typography
+
+* Define in: `core/theme/app_text_styles.dart`
+
+#### Spacing & Dimensions
+
+* Define in: `core/constants/app_spacing.dart`
+* Use constants like:
+
+  * `AppSpacing.sm`
+  * `AppSpacing.md`
+  * `AppSpacing.lg`
+
+#### Theme
+
+* Centralized in: `core/theme/app_theme.dart`
+* Support:
+
+  * Light theme
+  * Dark theme (mandatory)
+
+---
+
+## 🧩 3. Widget Design Principles
+
+### Rules:
+
+* No large widgets 
+* Break UI into reusable components
+* Use **StatelessWidget wherever possible**
+* Prefer **composition over inheritance**
+
+### Structure Example:
+
+```
+login_screen.dart
+  ├── login_form.dart
+  ├── login_button.dart
+  ├── email_input.dart
+```
+
+---
+
+## 🔁 4. State Management
+
+Use a **scalable state management solution**:
+👉 Preferred: **Riverpod (recommended)** or **Bloc**
+
+### Rules:
+
+* No `setState` for complex logic
+* Separate:
+
+  * UI state
+  * Business logic
+* Use providers/controllers/viewmodels
+
+---
+
+## 🌐 5. API & Data Layer
+
+### Rules:
+
+* Use repository pattern
+* No direct API calls in UI
+* Use:
+
+  * `Dio` or `http` for networking
+* Handle:
+
+  * Errors
+  * Timeouts
+  * Retry logic
+
+---
+
+## 🧠 6. Dependency Injection
+
+Use DI for scalability:
+
+* Preferred: **Riverpod DI** or **get_it**
+
+### Rules:
+
+* No direct instantiation inside widgets
+* Inject dependencies via providers/services
+
+---
+
+## 🧾 7. Models & Serialization
+
+* Use `freezed` + `json_serializable`
+* Immutable data models
+* Strict typing
+
+---
+
+## 🧪 8. Testing
+
+Must include:
+
+* Unit tests (business logic)
+* Widget tests (UI)
+* Repository tests
+
+---
+
+## 📦 9. Constants Management
+
+All constants must be centralized:
+
+```
+core/constants/
+  app_strings.dart
+  app_assets.dart
+  app_keys.dart
+```
+
+---
+
+## 🧭 10. Navigation
+
+* Use a structured routing system
+* Preferred:
+
+  * `go_router`
+
+---
+
+## ⚡ 11. Performance Best Practices
+
+* Use `const` constructors wherever possible
+* Avoid unnecessary rebuilds
+* Use `ListView.builder` for large lists
+* Memoize expensive computations
+
+---
+
+## 🧹 12. Code Quality
+
+* Follow Dart lint rules (`flutter_lints`)
+* Enforce:
+
+  * Proper naming conventions
+  * Small functions
+  * Readable code
+
+---
+
+## 🔐 13. Environment Configuration
+
+* Use `.env` files
+* No secrets in codebase
+* Separate:
+
+  * dev
+  * staging
+  * prod
+
+---
+
+## 📱 14. Responsiveness
+
+* Must support:
+
+  * Different screen sizes
+  * Orientation changes
+* Use:
+
+  * `MediaQuery`
+  * Responsive layout helpers
+
+---
+
+## 🌍 15. Localization (i18n)
+
+* No hardcoded text
+* Use localization files
+
+---
+
+## 🧯 16. Error Handling
+
+* Centralized error handling system
+* User-friendly error messages
+* Logging system (Crashlytics optional)
+
+---
+
+## 🧰 17. Logging & Debugging
+
+* Structured logging
+* No `print` statements in production
+
+---
+
+## 🔄 18. Code Reusability
+
+* Create shared widgets in:
+
+  ```
+  core/widgets/
+  ```
+* Avoid duplication
+
+---
+
+## 🧭 19. Folder Naming Rules
+
+* snake_case for files
+* PascalCase for classes
+* Feature-based grouping
+
+---
+
+## 🚫 20. Anti-Patterns to Avoid
+
+* God files (large files)
+* Business logic inside UI
+* Tight coupling
+* Magic numbers
+* Deep widget nesting
+
+---
+
+## ✅ Final Rule
+
+Every piece of UI, logic, and data must be:
+
+* Reusable
+* Testable
+* Scalable
+* Maintainable
+
+---
+
+## 🧠 Bonus Enhancements (Add These)
+
+* Offline support (caching)
+* Pagination support
+* Skeleton loaders (shimmer UI)
+* Feature flags
+* Analytics integration
+* Crash reporting
+* CI/CD readiness
+
+---
+
+## 🏁 Goal
+
+The final app should look and feel like:
+👉 A production-grade app built by a senior Flutter engineer in a top tech company.
