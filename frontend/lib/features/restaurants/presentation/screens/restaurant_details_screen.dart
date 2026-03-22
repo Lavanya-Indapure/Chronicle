@@ -79,7 +79,7 @@ class _RestaurantDetailsScreenState extends ConsumerState<RestaurantDetailsScree
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: history.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (_, index) => const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final visit = history[index];
                     return _VisitTile(visit: visit);
@@ -188,7 +188,7 @@ class _VisitTile extends StatelessWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: visit.photos.length,
-                separatorBuilder: (_, __) => AppSpacing.gapSm,
+                separatorBuilder: (_, index) => AppSpacing.gapSm,
                 itemBuilder: (context, index) {
                   return ClipRRect(
                     borderRadius: BorderRadius.circular(4),

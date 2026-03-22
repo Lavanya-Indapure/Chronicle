@@ -30,7 +30,7 @@ class HydrationController extends Notifier<HydrationState> {
 
   @override
   HydrationState build() {
-    _repository = ref.watch(hydrationRepositoryProvider) as HydrationRepositoryImpl;
+    _repository = ref.watch(hydrationRepositoryProvider);
     _loadTodayLogs();
     return const HydrationState(isLoading: true);
   }

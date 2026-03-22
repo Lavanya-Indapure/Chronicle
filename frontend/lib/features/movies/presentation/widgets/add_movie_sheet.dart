@@ -151,7 +151,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
                   AppSpacing.gapMd,
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _platform,
+                      initialValue: _platform,
                       decoration: const InputDecoration(labelText: 'Platform'),
                       items: const [
                         DropdownMenuItem(value: 'theatre', child: Text('🎭 Theatre')),

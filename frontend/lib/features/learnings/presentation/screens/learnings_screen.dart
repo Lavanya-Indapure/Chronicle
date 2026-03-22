@@ -147,7 +147,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
           TextField(controller: _sourceController, decoration: const InputDecoration(labelText: 'Source (e.g., Book, Friend)')),
           AppSpacing.gapMd,
           DropdownButtonFormField<String>(
-            value: _category,
+            initialValue: _category,
             items: ['finance', 'technology', 'life', 'food', 'travel', 'other'].map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase()))).toList(),
             onChanged: (v) => setState(() => _category = v),
             decoration: const InputDecoration(labelText: 'Category'),

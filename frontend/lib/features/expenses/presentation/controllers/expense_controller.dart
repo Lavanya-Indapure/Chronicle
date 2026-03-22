@@ -167,11 +167,11 @@ class ExpenseState {
       .fold(0.0, (sum, b) => b.amount);
 
   double get youOwe => transactions
-      .where((t) => t.type == TransactionType.BORROW && t.status == TransactionStatus.pending)
+      .where((t) => t.type == TransactionType.borrow && t.status == TransactionStatus.pending)
       .fold(0.0, (sum, t) => sum + t.amount);
 
   double get othersOweYou => transactions
-      .where((t) => t.type == TransactionType.LEND && t.status == TransactionStatus.pending)
+      .where((t) => t.type == TransactionType.lend && t.status == TransactionStatus.pending)
       .fold(0.0, (sum, t) => sum + t.amount);
 }
 

@@ -111,7 +111,7 @@ class _AddFirstTimeSheetState extends State<_AddFirstTimeSheet> {
   final _descController = TextEditingController();
   final _locController = TextEditingController();
   String? _emotion = 'excited';
-  int _rating = 5;
+  final int _rating = 5;
   DateTime _date = DateTime.now();
 
   @override
@@ -138,7 +138,7 @@ class _AddFirstTimeSheetState extends State<_AddFirstTimeSheet> {
           ),
           AppSpacing.gapMd,
           DropdownButtonFormField<String>(
-            value: _emotion,
+            initialValue: _emotion,
             items: ['happy', 'nervous', 'excited', 'amazed', 'scared'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
             onChanged: (v) => setState(() => _emotion = v),
             decoration: const InputDecoration(labelText: 'How did you feel?'),

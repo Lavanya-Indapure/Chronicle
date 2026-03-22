@@ -110,7 +110,7 @@ class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> {
                   Switch.adaptive(
                     value: _isFavorite,
                     onChanged: (v) => setState(() => _isFavorite = v),
-                    activeColor: Colors.red,
+                    activeThumbColor: Colors.red,
                   ),
                   const Icon(Icons.favorite, color: Colors.red),
                 ],

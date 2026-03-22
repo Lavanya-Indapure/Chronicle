@@ -41,7 +41,7 @@ class MoodController extends Notifier<MoodState> {
 
   @override
   MoodState build() {
-    _repository = ref.watch(moodRepositoryProvider) as MoodRepositoryImpl;
+    _repository = ref.watch(moodRepositoryProvider);
     _loadMoods();
     return const MoodState();
   }

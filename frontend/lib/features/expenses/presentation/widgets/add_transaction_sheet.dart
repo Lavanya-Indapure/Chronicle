@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 
+import 'package:chronicle/core/widgets/chronicle_button.dart';
+
 class AddTransactionSheet extends StatefulWidget {
   final Future<bool> Function({
     required String personName,
@@ -21,8 +23,8 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
-  TransactionType _type = TransactionType.LEND;
-  DateTime _selectedDate = DateTime.now();
+  TransactionType _type = TransactionType.lend;
+  final DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
 
   @override
@@ -58,38 +60,76 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return Container(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
-        top: AppSpacing.lg,
+        top: AppSpacing.md,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+      ),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Add Transaction', style: theme.textTheme.titleLarge),
-          AppSpacing.gapMd,
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Text(
+            'New Debt',
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            textAlign: TextAlign.center,
+          ),
+          AppSpacing.gapLg,
 
           // Type Toggle
           SegmentedButton<TransactionType>(
-            segments: const [
-              ButtonSegment(value: TransactionType.LEND, label: Text('Lend'), icon: Icon(Icons.archive_outlined)),
-              ButtonSegment(value: TransactionType.BORROW, label: Text('Borrow'), icon: Icon(Icons.unarchive_outlined)),
+            segments: [
+              ButtonSegment(
+                value: TransactionType.lend,
+                label: const Text('I Lent'),
+                icon: Icon(Icons.arrow_upward_rounded, size: 18, color: Colors.green.shade700)
+              ),
+              ButtonSegment(
+                value: TransactionType.borrow,
+                label: const Text('I Borrowed'),
+                icon: Icon(Icons.arrow_downward_rounded, size: 18, color: theme.colorScheme.error)
+              ),
             ],
             selected: {_type},
             onSelectionChanged: (val) => setState(() => _type = val.first),
+            showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(
+              selectedBackgroundColor: _type == TransactionType.lend
+                ? Colors.green.withValues(alpha: 0.1)
+                : theme.colorScheme.errorContainer.withValues(alpha: 0.3),
+              selectedForegroundColor: _type == TransactionType.lend
+                ? Colors.green.shade900
+                : theme.colorScheme.error,
+              side: BorderSide(color: theme.colorScheme.outlineVariant),
+            ),
           ),
-          AppSpacing.gapMd,
+          AppSpacing.gapLg,
 
           // Person Name
           TextFormField(
             controller: _nameController,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Person Name',
-              prefixIcon: Icon(Icons.person_outline),
+            decoration: InputDecoration(
+              labelText: 'Who involved?',
+              prefixIcon: const Icon(Icons.person_outline_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
             ),
             textInputAction: TextInputAction.next,
           ),
@@ -99,9 +139,14 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
           TextFormField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'Amount',
-              prefixIcon: Icon(Icons.attach_money),
+            style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            decoration: InputDecoration(
+              labelText: 'How much?',
+              prefixIcon: const Icon(Icons.currency_rupee_rounded),
+              hintText: '0.00',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+              filled: true,
+              fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
             ),
             textInputAction: TextInputAction.next,
           ),
@@ -110,26 +155,25 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
           // Reason
           TextFormField(
             controller: _reasonController,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Reason (optional)',
-              prefixIcon: Icon(Icons.notes),
+              prefixIcon: const Icon(Icons.notes_rounded),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
             ),
             textInputAction: TextInputAction.done,
             onFieldSubmitted: (_) => _submit(),
           ),
-          AppSpacing.gapMd,
+          AppSpacing.gapLg,
 
           // Submit
-          FilledButton(
-            onPressed: _isLoading ? null : _submit,
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(_type == TransactionType.LEND ? 'Log Loan' : 'Log Borrowing'),
+          ChronicleButton(
+            label: _type == TransactionType.lend ? 'Log Loan' : 'Log Borrowing',
+            onPressed: _submit,
+            isLoading: _isLoading,
+            isFullWidth: true,
+            color: _type == TransactionType.lend ? Colors.green : theme.colorScheme.primary,
           ),
+          AppSpacing.gapMd,
         ],
       ),
     );

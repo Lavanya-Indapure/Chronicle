@@ -4,6 +4,7 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/transaction_list_tile.dart';
 
 class TransactionHistoryScreen extends ConsumerWidget {
   const TransactionHistoryScreen({super.key});
@@ -20,7 +21,7 @@ class TransactionHistoryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: Icon(
-              Icons.filter_list,
+              Icons.tune_rounded,
               color: state.transactionFilters != const TransactionFilters() ? theme.colorScheme.primary : null,
             ),
             onPressed: () => _showFilters(context),
@@ -32,22 +33,24 @@ class TransactionHistoryScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: SearchBar(
-              hintText: 'Search person or reason...',
-              leading: const Icon(Icons.search),
+              hintText: 'Search people or reasons...',
+              leading: const Icon(Icons.search_rounded),
               onChanged: (value) => ref.read(expenseControllerProvider.notifier).setSearchQuery(value),
               elevation: WidgetStateProperty.all(0),
               backgroundColor: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
+              padding: const WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: AppSpacing.md)),
             ),
           ),
           if (state.transactionFilters != const TransactionFilters())
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              padding: const EdgeInsets.only(left: AppSpacing.md, right: AppSpacing.md, bottom: AppSpacing.md),
               child: Row(
                 children: [
                   ActionChip(
-                    label: const Text('Clear Filters'),
+                    label: const Text('Reset Filters'),
                     onPressed: () => ref.read(expenseControllerProvider.notifier).clearFilters(),
-                    avatar: const Icon(Icons.close, size: 16),
+                    avatar: const Icon(Icons.refresh_rounded, size: 14),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
@@ -58,26 +61,34 @@ class TransactionHistoryScreen extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history_outlined, size: 64, color: theme.disabledColor),
+                        Icon(Icons.history_rounded, size: 64, color: theme.colorScheme.outline.withValues(alpha: 0.3)),
                         AppSpacing.gapMd,
                         Text(
                           state.transactionSearchQuery.isEmpty && state.transactionFilters == const TransactionFilters()
-                              ? 'No transactions yet'
-                              : 'No matching transactions found',
-                          style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor),
+                              ? 'No records found'
+                              : 'No matches found',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     itemCount: transactions.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final t = transactions[index];
-                      return _HistoryTile(
+                      return TransactionListTile(
                         transaction: t,
-                        onSettle: () => _showSettleConfirmation(context, ref, t),
+                        showSettleButton: false,
+                        onSettle: t.status == TransactionStatus.settled
+                          ? null
+                          : () => _showSettleConfirmation(context, ref, t),
+                        onTap: t.status == TransactionStatus.settled
+                          ? null
+                          : () => _showSettleConfirmation(context, ref, t),
                       );
                     },
                   ),
@@ -105,7 +116,7 @@ class TransactionHistoryScreen extends ConsumerWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Confirm Settlement'),
-        content: Text('Are you sure you want to mark the debt from ${t.personName} as settled?'),
+        content: Text('Mark debt from ${t.personName} as settled?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Settle')),
@@ -116,70 +127,5 @@ class TransactionHistoryScreen extends ConsumerWidget {
     if (confirmed == true) {
       ref.read(expenseControllerProvider.notifier).settleTransaction(t.id);
     }
-  }
-}
-
-class _HistoryTile extends StatelessWidget {
-  final Transaction transaction;
-  final VoidCallback onSettle;
-
-  const _HistoryTile({required this.transaction, required this.onSettle});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLend = transaction.type == TransactionType.LEND;
-    final isSettled = transaction.status == TransactionStatus.settled;
-
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      leading: CircleAvatar(
-        backgroundColor: (isLend ? Colors.green : Colors.red).withValues(alpha: 0.1),
-        child: Icon(
-          isLend ? Icons.arrow_upward : Icons.arrow_downward,
-          color: isLend ? Colors.green : Colors.red,
-          size: 20,
-        ),
-      ),
-      title: Row(
-        children: [
-          Expanded(child: Text(transaction.personName, style: const TextStyle(fontWeight: FontWeight.bold))),
-          Text(
-            '₹${transaction.amount.toStringAsFixed(0)}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isLend ? Colors.green : Colors.red,
-            ),
-          ),
-        ],
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (transaction.reason != null) Text(transaction.reason!),
-          Row(
-            children: [
-              Text(transaction.date.toString().split(' ').first, style: theme.textTheme.bodySmall),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isSettled ? Colors.blue.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  isSettled ? 'Settled' : 'Pending',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isSettled ? Colors.blue : Colors.orange,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      onTap: isSettled ? null : onSettle,
-    );
   }
 }

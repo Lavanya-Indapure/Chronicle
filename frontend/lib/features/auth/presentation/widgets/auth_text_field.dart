@@ -34,6 +34,8 @@ class AuthTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
@@ -42,9 +44,15 @@ class AuthTextField extends StatelessWidget {
       textCapitalization: textCapitalization,
       readOnly: readOnly,
       onTap: onTap,
+      style: theme.textTheme.bodyLarge,
       decoration: InputDecoration(
         labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+        prefixIcon: prefixIcon != null
+            ? Icon(
+                prefixIcon,
+                size: 20,
+              )
+            : null,
         suffixIcon: suffixIcon,
       ),
       validator: validator,

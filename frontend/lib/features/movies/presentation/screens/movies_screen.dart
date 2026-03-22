@@ -39,7 +39,7 @@ class MoviesScreen extends ConsumerWidget {
                     : ListView.separated(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: movies.length,
-                        separatorBuilder: (_, __) => AppSpacing.gapMd,
+                        separatorBuilder: (context, index) => AppSpacing.gapMd,
                         itemBuilder: (context, index) {
                           final m = movies[index];
                           return _MovieTile(movie: m);

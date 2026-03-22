@@ -1,0 +1,32 @@
+﻿Analyzing frontend...                                           
+
+warning - The value of the local variable 'confirmed' isn't used - lib\features\expenses\presentation\screens\expenses_screen.dart:96:23 - unused_local_variable
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\expenses\presentation\screens\expenses_screen.dart:109:33 - use_build_context_synchronously
+warning - Unused import: 'package:chronicle/core/constants/app_strings.dart' - lib\features\expenses\presentation\widgets\add_expense_sheet.dart:4:8 - unused_import
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\expenses\presentation\widgets\add_expense_sheet.dart:238:44 - use_build_context_synchronously
+   info - The private field _rating could be 'final' - lib\features\first_times\presentation\screens\first_times_screen.dart:114:7 - prefer_final_fields
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\first_times\presentation\screens\first_times_screen.dart:141:13 - deprecated_member_use
+   info - 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre - lib\features\movies\presentation\widgets\add_movie_sheet.dart:154:23 - deprecated_member_use
+   info - Unnecessary use of multiple underscores - lib\features\restaurants\presentation\screens\restaurant_details_screen.dart:82:41 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - lib\features\restaurants\presentation\screens\restaurant_details_screen.dart:191:39 - unnecessary_underscores
+
+flutter : 9 issues 
+found. (ran in 3.8s)
+At line:1 char:1
++ flutter analyze 
+--no-pub 2>&1 | 
+Out-File 
+analyze_all.txt 
+-Encoding ut ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (9 issues foun   
+ d. (ran in 3.8s):S    
+tring) [], RemoteE    
+xception
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 

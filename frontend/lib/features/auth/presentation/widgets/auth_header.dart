@@ -12,10 +12,23 @@ class AuthHeader extends StatelessWidget {
 
     return Column(
       children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.auto_awesome_rounded,
+            size: 48,
+            color: theme.colorScheme.primary,
+          ),
+        ),
+        AppSpacing.gapLg,
         Text(
           AppStrings.appName,
           textAlign: TextAlign.center,
-          style: theme.textTheme.headlineLarge?.copyWith(
+          style: theme.textTheme.displayLarge?.copyWith(
             color: theme.colorScheme.primary,
           ),
         ),
@@ -23,7 +36,10 @@ class AuthHeader extends StatelessWidget {
         Text(
           AppStrings.appTagline,
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            letterSpacing: 0.2,
+          ),
         ),
       ],
     );

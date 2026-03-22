@@ -23,7 +23,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
   String _duration = '6m';
   DateTime? _targetDate;
   int _progress = 0;
-  String _status = 'not_started';
+  String _status = 'notStarted';
   bool _isFavorite = false;
   bool _isSubmitting = false;
 
@@ -144,7 +144,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
                   AppSpacing.gapMd,
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _duration,
+                      initialValue: _duration,
                       decoration: const InputDecoration(labelText: 'Timeline'),
                       items: _durationOptions.map((opt) => DropdownMenuItem(value: opt['value'], child: Text(opt['label']!))).toList(),
                       onChanged: (v) {
@@ -167,7 +167,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
               ),
               AppSpacing.gapLg,
               if (widget.goal != null) ...[
-                Text('Progress (${_progress}%)', style: theme.textTheme.labelMedium),
+                Text('Progress ($_progress%)', style: theme.textTheme.labelMedium),
                 Slider(
                   value: _progress.toDouble(),
                   min: 0,
@@ -177,11 +177,11 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
                   onChanged: (v) => setState(() => _progress = v.toInt()),
                 ),
                 DropdownButtonFormField<String>(
-                  value: _status,
+                  initialValue: _status,
                   decoration: const InputDecoration(labelText: 'Status'),
                   items: const [
-                    DropdownMenuItem(value: 'not_started', child: Text('⏳ Not Started')),
-                    DropdownMenuItem(value: 'in_progress', child: Text('🚀 In Progress')),
+                    DropdownMenuItem(value: 'notStarted', child: Text('⏳ Not Started')),
+                    DropdownMenuItem(value: 'inProgress', child: Text('🚀 In Progress')),
                     DropdownMenuItem(value: 'completed', child: Text('✅ Completed')),
                   ],
                   onChanged: (v) => setState(() => _status = v!),

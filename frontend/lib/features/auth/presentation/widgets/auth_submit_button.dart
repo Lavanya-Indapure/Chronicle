@@ -1,32 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:chronicle/core/widgets/chronicle_button.dart';
 
-/// Reusable submit button with loading state.
+/// Reusable submit button for auth screens.
+/// Features a loading state and full-width layout.
 class AuthSubmitButton extends StatelessWidget {
   final String label;
-  final bool isLoading;
   final VoidCallback? onPressed;
+  final bool isLoading;
 
   const AuthSubmitButton({
     super.key,
     required this.label,
-    required this.isLoading,
     this.onPressed,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: isLoading ? null : onPressed,
-      child: isLoading
-          ? SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: Theme.of(context).colorScheme.onPrimary,
-              ),
-            )
-          : Text(label),
+    return ChronicleButton(
+      label: label,
+      onPressed: onPressed,
+      isLoading: isLoading,
+      size: ChronicleButtonSize.lg,
     );
   }
 }

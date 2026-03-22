@@ -19,32 +19,34 @@ class TodoGroupHeader extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(
-        top: AppSpacing.md,
+        top: AppSpacing.lg,
         bottom: AppSpacing.sm,
       ),
       child: Row(
         children: [
           Text(
-            type.label,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+            type.label.toUpperCase(),
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
             ),
           ),
           AppSpacing.hGapSm,
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
+              horizontal: 8,
               vertical: 2,
             ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: AppSpacing.borderRadiusSm,
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
               '$count',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimaryContainer,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),

@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
+
+
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
 import 'package:chronicle/features/todos/presentation/widgets/todo_group_header.dart';
 import 'package:chronicle/features/todos/presentation/widgets/todo_item_tile.dart';
 import 'package:chronicle/features/todos/presentation/widgets/add_todo_sheet.dart';
 import 'package:chronicle/features/todos/presentation/widgets/edit_todo_sheet.dart';
+import 'package:chronicle/core/widgets/chronicle_button.dart';
+
 
 class TodosScreen extends ConsumerWidget {
   const TodosScreen({super.key});
@@ -30,17 +34,27 @@ class TodosScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.todosLabel),
         actions: [
-          if (!state.isLoading)
-            Padding(
-              padding: const EdgeInsets.only(right: AppSpacing.md),
-              child: Center(
-                child: Text(
-                  '${state.completedCount}/${state.totalCount}',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+          if (!state.isLoading && state.totalCount > 0)
+            Container(
+              margin: const EdgeInsets.only(right: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle_rounded, size: 14, color: theme.colorScheme.onInverseSurface),
+                  AppSpacing.hGapSm,
+                  Text(
+                    '${state.completedCount}/${state.totalCount}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
         ],
@@ -52,16 +66,17 @@ class TodosScreen extends ConsumerWidget {
               : RefreshIndicator(
                   onRefresh: () => ref.read(todoControllerProvider.notifier).loadTodayTodos(),
                   child: ListView.builder(
-                    padding: AppSpacing.paddingScreen,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
                     itemCount: _calculateItemCount(state),
                     itemBuilder: (context, index) {
                       return _buildItem(context, ref, state, index);
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddSheet(context, ref),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_task_rounded),
+        label: const Text('Add Task'),
       ),
     );
   }
@@ -188,20 +203,43 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.check_circle_outline, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.3)),
-          AppSpacing.gapMd,
-          Text(AppStrings.noTodosYet, style: theme.textTheme.titleMedium),
-          AppSpacing.gapSm,
-          Text(AppStrings.addFirstTodo, style: theme.textTheme.bodySmall),
-          AppSpacing.gapLg,
-          FilledButton.tonal(
-            onPressed: onAdd,
-            child: const Text(AppStrings.addTodo),
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.xl),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.task_alt_rounded, 
+                size: 64, 
+                color: theme.colorScheme.primary.withValues(alpha: 0.4)
+              ),
+            ),
+            AppSpacing.gapLg,
+            Text(
+              AppStrings.noTodosYet, 
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            AppSpacing.gapSm,
+            Text(
+              AppStrings.addFirstTodo, 
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+            AppSpacing.gapXl,
+            ChronicleButton(
+              label: AppStrings.addTodo,
+              onPressed: onAdd,
+              size: ChronicleButtonSize.lg,
+            ),
+          ],
+        ),
       ),
     );
   }

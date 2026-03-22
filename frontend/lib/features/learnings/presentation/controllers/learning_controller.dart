@@ -43,7 +43,7 @@ class LearningController extends Notifier<LearningState> {
 
   @override
   LearningState build() {
-    _repository = ref.watch(learningRepositoryProvider) as LearningRepositoryImpl;
+    _repository = ref.watch(learningRepositoryProvider);
     _loadLearnings();
     return const LearningState();
   }

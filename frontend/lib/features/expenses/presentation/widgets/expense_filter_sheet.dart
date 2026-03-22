@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
+import 'package:chronicle/core/widgets/chronicle_button.dart';
 
 class ExpenseFilterSheet extends ConsumerStatefulWidget {
   const ExpenseFilterSheet({super.key});
@@ -52,136 +53,200 @@ class _ExpenseFilterSheetState extends ConsumerState<ExpenseFilterSheet> {
     final theme = Theme.of(context);
     final categories = ref.watch(expenseControllerProvider).categories;
 
-    return Padding(
+    return Container(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
-        top: AppSpacing.lg,
+        top: AppSpacing.md,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Filter expenses', style: theme.textTheme.titleLarge),
-                TextButton(
-                  onPressed: () {
-                    ref.read(expenseControllerProvider.notifier).clearExpenseFilters();
-                    ref.read(expenseControllerProvider.notifier).setExpenseSorting(ExpenseSorting.latest);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Reset'),
-                ),
-              ],
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            AppSpacing.gapMd,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Filter Expenses', 
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  ref.read(expenseControllerProvider.notifier).clearExpenseFilters();
+                  ref.read(expenseControllerProvider.notifier).setExpenseSorting(ExpenseSorting.latest);
+                  Navigator.pop(context);
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Reset'),
+              ),
+            ],
+          ),
+          AppSpacing.gapLg,
 
-            // Sorting
-            Text('Sort By', style: theme.textTheme.titleSmall),
-            AppSpacing.gapSm,
-            Wrap(
-              spacing: AppSpacing.sm,
-              children: ExpenseSorting.values.map((s) {
-                final label = s == ExpenseSorting.latest ? 'Latest' : 
-                              s == ExpenseSorting.oldest ? 'Oldest' :
-                              s == ExpenseSorting.amountHigh ? 'Highest Amount' : 'Lowest Amount';
-                return ChoiceChip(
-                  label: Text(label),
-                  selected: _sorting == s,
-                  onSelected: (val) => setState(() => _sorting = s),
-                );
-              }).toList(),
-            ),
-            AppSpacing.gapMd,
-
-            // Category Filter
-            Text('Category', style: theme.textTheme.titleSmall),
-            AppSpacing.gapSm,
-            DropdownButtonFormField<String?>(
-              value: _filters.categoryId,
-              hint: const Text('All Categories'),
-              items: [
-                const DropdownMenuItem(value: null, child: Text('All Categories')),
-                ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
-              ],
-              onChanged: (val) => setState(() => _filters = _filters.copyWith(categoryId: val, clearCategory: val == null)),
-              decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 12)),
-            ),
-            AppSpacing.gapMd,
-
-            // Necessity Filter
-            Text('Necessity', style: theme.textTheme.titleSmall),
-            AppSpacing.gapSm,
-            SegmentedButton<bool?>(
-              segments: const [
-                ButtonSegment(value: null, label: Text('All')),
-                ButtonSegment(value: true, label: Text('Necessary')),
-                ButtonSegment(value: false, label: Text('Unnecessary')),
-              ],
-              selected: {_filters.isNecessary},
-              onSelectionChanged: (val) => setState(() => _filters = _filters.copyWith(isNecessary: val.first, clearNecessity: val.first == null)),
-            ),
-            AppSpacing.gapMd,
-
-            // Amount Range
-            Text('Amount Range', style: theme.textTheme.titleSmall),
-            AppSpacing.gapSm,
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _minAmountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Min', prefixText: '₹'),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Sorting
+                  _buildSectionHeader(theme, 'Sort By'),
+                  AppSpacing.gapSm,
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xs,
+                    children: ExpenseSorting.values.map((s) {
+                      final label = s == ExpenseSorting.latest ? 'Latest' : 
+                                    s == ExpenseSorting.oldest ? 'Oldest' :
+                                    s == ExpenseSorting.amountHigh ? 'Highest Amount' : 'Lowest Amount';
+                      final isSelected = _sorting == s;
+                      return ChoiceChip(
+                        label: Text(label),
+                        selected: isSelected,
+                        onSelected: (val) => setState(() => _sorting = s),
+                      );
+                    }).toList(),
                   ),
-                ),
-                AppSpacing.gapMd,
-                Expanded(
-                  child: TextField(
-                    controller: _maxAmountController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Max', prefixText: '₹'),
+                  AppSpacing.gapLg,
+
+                  // Category Filter
+                  _buildSectionHeader(theme, 'Category'),
+                  AppSpacing.gapSm,
+                  DropdownButtonFormField<String?>(
+                    initialValue: _filters.categoryId,
+                    hint: const Text('All Categories'),
+                    items: [
+                      const DropdownMenuItem(value: null, child: Text('All Categories')),
+                      ...categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))),
+                    ],
+                    onChanged: (val) => setState(() => _filters = _filters.copyWith(categoryId: val, clearCategory: val == null)),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.category_outlined),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            AppSpacing.gapMd,
+                  AppSpacing.gapLg,
 
-            // Date Range
-            Text('Date Range', style: theme.textTheme.titleSmall),
-            AppSpacing.gapSm,
-            OutlinedButton.icon(
-              onPressed: () async {
-                final range = await showDateRangePicker(
-                  context: context,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                  initialDateRange: _filters.startDate != null && _filters.endDate != null
-                      ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
-                      : null,
-                );
-                if (range != null) {
-                  setState(() => _filters = _filters.copyWith(startDate: range.start, endDate: range.end));
-                }
-              },
-              icon: const Icon(Icons.date_range),
-              label: Text(_filters.startDate != null
-                  ? '${_filters.startDate!.toString().split(' ').first} - ${_filters.endDate!.toString().split(' ').first}'
-                  : 'Select Range'),
-            ),
-            AppSpacing.gapLg,
+                  // Necessity Filter
+                  _buildSectionHeader(theme, 'Type'),
+                  AppSpacing.gapSm,
+                  SegmentedButton<bool?>(
+                    segments: const [
+                      ButtonSegment(value: null, label: Text('All')),
+                      ButtonSegment(value: true, label: Text('Essential'), icon: Icon(Icons.check_circle_outline, size: 18)),
+                      ButtonSegment(value: false, label: Text('Splurge'), icon: Icon(Icons.star_outline, size: 18)),
+                    ],
+                    selected: {_filters.isNecessary},
+                    onSelectionChanged: (val) => setState(() => _filters = _filters.copyWith(isNecessary: val.first, clearNecessity: val.first == null)),
+                    showSelectedIcon: false,
+                  ),
+                  AppSpacing.gapLg,
 
-            // Apply Button
-            FilledButton(
-              onPressed: _apply,
-              child: const Text('Apply Results'),
+                  // Amount Range
+                  _buildSectionHeader(theme, 'Amount Range'),
+                  AppSpacing.gapSm,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _minAmountController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Min', 
+                            prefixText: '₹',
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                          ),
+                        ),
+                      ),
+                      AppSpacing.hGapMd,
+                      Expanded(
+                        child: TextField(
+                          controller: _maxAmountController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Max', 
+                            prefixText: '₹',
+                            filled: true,
+                            fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSpacing.gapLg,
+
+                  // Date Range
+                  _buildSectionHeader(theme, 'Date Range'),
+                  AppSpacing.gapSm,
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final range = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime.now(),
+                        initialDateRange: _filters.startDate != null && _filters.endDate != null
+                            ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
+                            : null,
+                      );
+                      if (range != null) {
+                        setState(() => _filters = _filters.copyWith(startDate: range.start, endDate: range.end));
+                      }
+                    },
+                    icon: const Icon(Icons.date_range_rounded),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    ),
+                    label: Text(_filters.startDate != null
+                        ? '${_filters.startDate!.toString().split(' ').first} - ${_filters.endDate!.toString().split(' ').first}'
+                        : 'Select Date Range'),
+                  ),
+                  AppSpacing.gapLg,
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+
+          // Apply Button
+          ChronicleButton(
+            label: 'Show Results',
+            onPressed: _apply,
+            isFullWidth: true,
+          ),
+          AppSpacing.gapMd,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(ThemeData theme, String title) {
+    return Text(
+      title.toUpperCase(),
+      style: theme.textTheme.labelMedium?.copyWith(
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.2,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
       ),
     );
   }

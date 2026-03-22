@@ -101,8 +101,8 @@ class _FiltersRow extends ConsumerWidget {
           AppSpacing.gapSm,
           FilterChip(
             label: const Text('In Progress'),
-            selected: state.statusFilter == 'in_progress',
-            onSelected: (_) => ref.read(visionBoardControllerProvider.notifier).setStatusFilter('in_progress'),
+            selected: state.statusFilter == 'inProgress',
+            onSelected: (_) => ref.read(visionBoardControllerProvider.notifier).setStatusFilter('inProgress'),
           ),
           AppSpacing.gapSm,
           FilterChip(
@@ -211,7 +211,7 @@ class _StatusLabel extends StatelessWidget {
     String label;
     switch (status) {
       case 'completed': color = Colors.green; label = 'COMPLETED'; break;
-      case 'in_progress': color = Colors.orange; label = 'IN PROGRESS'; break;
+      case 'inProgress': color = Colors.orange; label = 'IN PROGRESS'; break;
       default: color = Colors.grey; label = 'NOT STARTED';
     }
 

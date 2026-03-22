@@ -6,6 +6,7 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:chronicle/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:chronicle/features/auth/presentation/widgets/auth_submit_button.dart';
+import 'package:chronicle/features/auth/presentation/widgets/auth_header.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -79,161 +80,169 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
       }
     });
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.createAccount),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/login'),
-        ),
-      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: AppSpacing.paddingScreen,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // First Name
-                AuthTextField(
-                  controller: _firstNameController,
-                  labelText: AppStrings.firstName,
-                  prefixIcon: Icons.person_outline,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.requiredFirstName;
-                    }
-                    return null;
-                  },
-                ),
-                AppSpacing.gapMd,
-
-                // Last Name
-                AuthTextField(
-                  controller: _lastNameController,
-                  labelText: AppStrings.lastName,
-                  prefixIcon: Icons.person_outline,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.requiredLastName;
-                    }
-                    return null;
-                  },
-                ),
-                AppSpacing.gapMd,
-
-                // Email
-                AuthTextField(
-                  controller: _emailController,
-                  labelText: AppStrings.email,
-                  prefixIcon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return AppStrings.requiredEmail;
-                    }
-                    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                      return AppStrings.invalidEmail;
-                    }
-                    return null;
-                  },
-                ),
-                AppSpacing.gapMd,
-
-                // DOB (Optional)
-                AuthTextField(
-                  controller: TextEditingController(
-                    text: _selectedDob != null
-                        ? '${_selectedDob!.day}/${_selectedDob!.month}/${_selectedDob!.year}'
-                        : '',
-                  ),
-                  labelText: AppStrings.dateOfBirth,
-                  prefixIcon: Icons.cake_outlined,
-                  readOnly: true,
-                  onTap: _pickDob,
-                ),
-                AppSpacing.gapMd,
-
-                // Password
-                AuthTextField(
-                  controller: _passwordController,
-                  labelText: AppStrings.password,
-                  prefixIcon: Icons.lock_outline,
-                  obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() => _obscurePassword = !_obscurePassword);
-                    },
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return AppStrings.requiredPassword;
-                    }
-                    if (value.length < 6) return AppStrings.passwordTooShort;
-                    return null;
-                  },
-                ),
-                AppSpacing.gapMd,
-
-                // Confirm Password
-                AuthTextField(
-                  controller: _confirmPasswordController,
-                  labelText: AppStrings.confirmPassword,
-                  prefixIcon: Icons.lock_outline,
-                  obscureText: _obscureConfirmPassword,
-                  textInputAction: TextInputAction.done,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureConfirmPassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() =>
-                          _obscureConfirmPassword = !_obscureConfirmPassword);
-                    },
-                  ),
-                  validator: (value) {
-                    if (value != _passwordController.text) {
-                      return AppStrings.passwordMismatch;
-                    }
-                    return null;
-                  },
-                  onFieldSubmitted: (_) => _handleSignup(),
-                ),
-                AppSpacing.gapLg,
-
-                // Submit
-                AuthSubmitButton(
-                  label: AppStrings.createAccount,
-                  isLoading: isLoading,
-                  onPressed: _handleSignup,
-                ),
-                AppSpacing.gapMd,
-
-                // Switch to login
-                Row(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: AppSpacing.paddingHorizontal,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      AppStrings.haveAccount,
-                      style: Theme.of(context).textTheme.bodyMedium,
+                    AppSpacing.gapLg,
+                    const AuthHeader(),
+                    AppSpacing.gapXl,
+
+                    // First Name
+                    AuthTextField(
+                      controller: _firstNameController,
+                      labelText: AppStrings.firstName,
+                      prefixIcon: Icons.person_outline,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return AppStrings.requiredFirstName;
+                        }
+                        return null;
+                      },
                     ),
-                    TextButton(
-                      onPressed: () => context.go('/login'),
-                      child: const Text(AppStrings.login),
+                    AppSpacing.gapMd,
+
+                    // Last Name
+                    AuthTextField(
+                      controller: _lastNameController,
+                      labelText: AppStrings.lastName,
+                      prefixIcon: Icons.person_outline,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return AppStrings.requiredLastName;
+                        }
+                        return null;
+                      },
                     ),
+                    AppSpacing.gapMd,
+
+                    // Email
+                    AuthTextField(
+                      controller: _emailController,
+                      labelText: AppStrings.email,
+                      prefixIcon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return AppStrings.requiredEmail;
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return AppStrings.invalidEmail;
+                        }
+                        return null;
+                      },
+                    ),
+                    AppSpacing.gapMd,
+
+                    // DOB (Optional)
+                    AuthTextField(
+                      controller: TextEditingController(
+                        text: _selectedDob != null
+                            ? '${_selectedDob!.day}/${_selectedDob!.month}/${_selectedDob!.year}'
+                            : '',
+                      ),
+                      labelText: AppStrings.dateOfBirth,
+                      prefixIcon: Icons.cake_outlined,
+                      readOnly: true,
+                      onTap: _pickDob,
+                    ),
+                    AppSpacing.gapMd,
+
+                    // Password
+                    AuthTextField(
+                      controller: _passwordController,
+                      labelText: AppStrings.password,
+                      prefixIcon: Icons.lock_outline,
+                      obscureText: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return AppStrings.requiredPassword;
+                        }
+                        if (value.length < 6) return AppStrings.passwordTooShort;
+                        return null;
+                      },
+                    ),
+                    AppSpacing.gapMd,
+
+                    // Confirm Password
+                    AuthTextField(
+                      controller: _confirmPasswordController,
+                      labelText: AppStrings.confirmPassword,
+                      prefixIcon: Icons.lock_outline,
+                      obscureText: _obscureConfirmPassword,
+                      textInputAction: TextInputAction.done,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscureConfirmPassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscureConfirmPassword =
+                              !_obscureConfirmPassword);
+                        },
+                      ),
+                      validator: (value) {
+                        if (value != _passwordController.text) {
+                          return AppStrings.passwordMismatch;
+                        }
+                        return null;
+                      },
+                      onFieldSubmitted: (_) => _handleSignup(),
+                    ),
+                    AppSpacing.gapLg,
+
+                    // Submit
+                    AuthSubmitButton(
+                      label: AppStrings.createAccount,
+                      isLoading: isLoading,
+                      onPressed: _handleSignup,
+                    ),
+                    AppSpacing.gapXl,
+
+                    // Switch to login
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          AppStrings.haveAccount,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go('/login'),
+                          child: const Text(AppStrings.login),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.gapLg,
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

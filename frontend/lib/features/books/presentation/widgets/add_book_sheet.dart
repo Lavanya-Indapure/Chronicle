@@ -139,7 +139,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _status,
+                      initialValue: _status,
                       decoration: const InputDecoration(labelText: 'Status'),
                       items: const [
                         DropdownMenuItem(value: 'reading', child: Text('📖 Reading')),
@@ -151,7 +151,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
                   AppSpacing.gapMd,
                    Expanded(
                     child: DropdownButtonFormField<double?>(
-                      value: _rating,
+                      initialValue: _rating,
                       decoration: const InputDecoration(labelText: 'Rating'),
                       items: [
                         const DropdownMenuItem(value: null, child: Text('No Rating')),

@@ -1,0 +1,25 @@
+﻿Analyzing frontend...                                           
+
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\expenses\presentation\screens\expenses_screen.dart:109:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\features\expenses\presentation\widgets\add_expense_sheet.dart:237:44 - use_build_context_synchronously
+
+flutter : 2 issues 
+found. (ran in 7.1s)
+At line:1 char:1
++ flutter analyze 
+--no-pub 2>&1 | 
+Out-File 
+analyze_final.txt 
+-Encoding  ...
++ ~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo      
+        : NotSpecified  
+  : (2 issues found.    
+ (ran in 7.1s):Strin    
+g) [], RemoteExcept    
+ion
+    + FullyQualifiedErr 
+   orId : NativeComman  
+  dError
+ 

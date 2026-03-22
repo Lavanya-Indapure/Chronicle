@@ -25,9 +25,12 @@ abstract final class AppSpacing {
   static const SizedBox hGapLg = SizedBox(width: lg);
 
   // ── Common padding ──
+  static const EdgeInsets paddingAllSm = EdgeInsets.all(sm);
   static const EdgeInsets paddingAll = EdgeInsets.all(md);
-  static const EdgeInsets paddingHorizontal = EdgeInsets.symmetric(horizontal: xl);
-  static const EdgeInsets paddingScreen = EdgeInsets.symmetric(horizontal: xl, vertical: lg);
+  static const EdgeInsets paddingAllLg = EdgeInsets.all(lg);
+  static const EdgeInsets paddingHorizontal = EdgeInsets.symmetric(horizontal: md);
+  static const EdgeInsets paddingScreen = EdgeInsets.all(md);
+  static const EdgeInsets paddingCard = EdgeInsets.all(md);
 
   // ── Border Radius ──
   static const double radiusSm = 8.0;
@@ -38,4 +41,5 @@ abstract final class AppSpacing {
   static BorderRadius get borderRadiusSm => BorderRadius.circular(radiusSm);
   static BorderRadius get borderRadiusMd => BorderRadius.circular(radiusMd);
   static BorderRadius get borderRadiusLg => BorderRadius.circular(radiusLg);
+  static BorderRadius get borderRadiusXl => BorderRadius.circular(radiusXl);
 }

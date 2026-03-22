@@ -10,7 +10,6 @@ import 'package:chronicle/features/moods/presentation/controllers/mood_controlle
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/health/domain/models/health_models.dart';
-import 'package:collection/collection.dart'; // For groupBy
 
 class DashboardController extends Notifier<DashboardState> {
   @override
@@ -35,7 +34,6 @@ class DashboardController extends Notifier<DashboardState> {
       final dateRange = _getEffectiveDateRange();
       final start = dateRange.start;
       final end = dateRange.end;
-      final todayStr = DateTime.now().toIso8601String().split('T').first;
 
       // Dependencies
       final expenseRepo = ref.read(expenseRepositoryProvider);

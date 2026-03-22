@@ -1,8 +1,8 @@
 import 'package:equatable/equatable.dart';
 
 enum TransactionType {
-  LEND,
-  BORROW;
+  lend,
+  borrow;
 
   String get label => name[0].toUpperCase() + name.substring(1);
 }
@@ -47,7 +47,7 @@ class Transaction extends Equatable {
       amount: (json['amount'] as num).toDouble(),
       type: TransactionType.values.firstWhere(
         (e) => e.name == json['type'],
-        orElse: () => TransactionType.LEND,
+        orElse: () => TransactionType.lend,
       ),
       status: TransactionStatus.values.firstWhere(
         (e) => e.name == json['status'],

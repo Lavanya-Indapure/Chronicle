@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
-import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:chronicle/features/dashboard/domain/models/dashboard_models.dart';
+
+import 'package:chronicle/features/dashboard/presentation/widgets/insights_carousel.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/expense_analytics_card.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/todo_analytics_card.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/health_mini_card.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/activity_stat_item.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -21,88 +24,120 @@ class DashboardScreen extends ConsumerWidget {
     if (state.errorMessage != null) {
       return Scaffold(
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              AppSpacing.gapMd,
-              Text('Failed to load dashboard', style: theme.textTheme.titleMedium),
-              Text(state.errorMessage!, style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.xxl),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.xl),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.error_outline_rounded, size: 48, color: theme.colorScheme.error),
+                ),
+                AppSpacing.gapLg,
+                Text(
+                  'Something went wrong', 
+                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                AppSpacing.gapSm,
+                Text(
+                  state.errorMessage!, 
+                  style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+                AppSpacing.gapXl,
+                FilledButton.icon(
+                  onPressed: () => notifier.setFilter(state.filter),
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Try Again'),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surfaceContainerHighest.withOpacity(0.3),
       appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: DropdownButton<DashboardDateFilter>(
-              value: state.filter,
-              underline: const SizedBox(),
-              icon: const Icon(Icons.filter_list, size: 20),
-              dropdownColor: theme.colorScheme.surfaceContainer,
-              items: const [
-                DropdownMenuItem(value: DashboardDateFilter.today, child: Text("Today")),
-                DropdownMenuItem(value: DashboardDateFilter.thisWeek, child: Text("This Week")),
-                DropdownMenuItem(value: DashboardDateFilter.thisMonth, child: Text("This Month")),
-              ],
-              onChanged: (val) {
-                if (val != null) {
-                  notifier.setFilter(val);
-                }
-              },
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Good Day!', 
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            Text(
+              'Overview', 
+              style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900, letterSpacing: -0.5),
+            ),
+          ],
+        ),
+        actions: [
+          _DashboardFilterDropdown(
+            value: state.filter,
+            onChanged: (val) {
+              if (val != null) {
+                notifier.setFilter(val);
+              }
+            },
           ),
+          AppSpacing.hGapMd,
         ],
+        toolbarHeight: 70,
       ),
       body: state.isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: () async => notifier.setFilter(state.filter),
               child: ListView(
-                padding: AppSpacing.paddingScreen,
+                padding: const EdgeInsets.all(AppSpacing.md),
                 children: [
-                   // Smart Insights Carousel
-                  if (state.insights.isNotEmpty)
-                    _InsightsCarousel(insights: state.insights),
-                  
-                  if (state.insights.isNotEmpty) AppSpacing.gapLg,
+                  // Smart Insights Carousel
+                  if (state.insights.isNotEmpty) ...[
+                    InsightsCarousel(insights: state.insights),
+                    AppSpacing.gapLg,
+                  ],
 
-                  // 1. Hero: Expenses
-                  _ExpenseAnalyticsCard(analytics: state.expenseAnalytics),
-
+                  // Expenses
+                  ExpenseAnalyticsCard(analytics: state.expenseAnalytics),
                   AppSpacing.gapLg,
 
-                  // 2. Todos & Streaks
-                  _TodoAnalyticsCard(analytics: state.todoAnalytics),
-
+                  // Tasks
+                  TodoAnalyticsCard(analytics: state.todoAnalytics),
                   AppSpacing.gapLg,
 
-                  // 3. Health & Hydration
+                  // Health & Hydration
                   Row(
                     children: [
                       Expanded(
-                        child: _HealthMiniCard(
-                          icon: Icons.water_drop,
+                        child: HealthMiniCard(
+                          icon: Icons.water_drop_rounded,
                           title: "Hydration",
                           value: "${state.healthAnalytics.hydrationPercentage.toStringAsFixed(0)}%",
-                          subtitle: state.healthAnalytics.hydrationPercentage >= 100 ? "Goal Reached!" : "Keep drinking!",
+                          subtitle: state.healthAnalytics.hydrationPercentage >= 100 
+                              ? "Daily goal reached" 
+                              : "Next: 1 glass",
                           color: Colors.blue,
                         ),
                       ),
                       AppSpacing.hGapMd,
                       Expanded(
-                        child: _HealthMiniCard(
-                          icon: Icons.nights_stay,
+                        child: HealthMiniCard(
+                          icon: Icons.nights_stay_rounded,
                           title: "Sleep",
                           value: state.healthAnalytics.lastNightSleep != null 
                               ? "${state.healthAnalytics.lastNightSleep!.inHours}h ${state.healthAnalytics.lastNightSleep!.inMinutes.remainder(60)}m"
-                              : "No data",
+                              : "Not recorded",
                           subtitle: "Last night",
                           color: Colors.indigo,
                         ),
@@ -110,391 +145,101 @@ class DashboardScreen extends ConsumerWidget {
                     ],
                   ),
 
-                  AppSpacing.gapLg,
+                  AppSpacing.gapXl,
 
-                  // 4. Activity Summary
-                  Text("Recent Activity", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                  AppSpacing.gapSm,
+                  // Activity Summary Header
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
-                      _ActivityStat(icon: Icons.lightbulb, count: state.activitySummary.newLearnings, label: "Learned"),
-                      _ActivityStat(icon: Icons.place, count: state.activitySummary.placesVisited, label: "Places"),
-                      _ActivityStat(icon: Icons.mood, count: state.activitySummary.moodsLogged, label: "Moods"),
+                      Text(
+                        "RECENT MILESTONES", 
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                          color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                        )
+                      ),
                     ],
                   ),
+                  AppSpacing.gapMd,
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerLow,
+                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ActivityStatItem(
+                          icon: Icons.lightbulb_outline_rounded, 
+                          count: state.activitySummary.newLearnings, 
+                          label: "Lessons"
+                        ),
+                        ActivityStatItem(
+                          icon: Icons.explore_outlined, 
+                          count: state.activitySummary.placesVisited, 
+                          label: "Explored"
+                        ),
+                        ActivityStatItem(
+                          icon: Icons.auto_awesome_rounded, 
+                          count: state.activitySummary.moodsLogged, 
+                          label: "Moods"
+                        ),
+                      ],
+                    ),
+                  ),
 
-                  AppSpacing.gapXl,
-                  AppSpacing.gapXl,
+                  AppSpacing.gapXxl,
                 ],
               ),
             ),
-       // Floating action for quick adds
        floatingActionButton: FloatingActionButton.extended(
-         onPressed: () {
-           // Basic quick action - navigate to Expenses for instance
-           context.go('/expenses');
-         },
-         icon: const Icon(Icons.add),
-         label: const Text('New Entry'),
+         onPressed: () => context.go('/expenses'),
+         icon: const Icon(Icons.add_rounded),
+         label: const Text('LOG ACTIVITY'),
+         extendedTextStyle: theme.textTheme.labelLarge?.copyWith(
+           fontWeight: FontWeight.w900,
+           letterSpacing: 1,
+         ),
        ),
     );
   }
 }
 
-class _InsightsCarousel extends StatelessWidget {
-  final List<SmartInsight> insights;
-  const _InsightsCarousel({required this.insights});
+class _DashboardFilterDropdown extends StatelessWidget {
+  final DashboardDateFilter value;
+  final ValueChanged<DashboardDateFilter?> onChanged;
+
+  const _DashboardFilterDropdown({required this.value, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     
-    return SizedBox(
-      height: 80,
-      child: PageView.builder(
-        itemCount: insights.length,
-        itemBuilder: (context, index) {
-          final insight = insights[index];
-          final color = insight.type == InsightType.positive 
-              ? Colors.green 
-              : insight.type == InsightType.warning ? Colors.orange : theme.colorScheme.primary;
-              
-          return Card(
-            color: color.withOpacity(0.1),
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: color.withOpacity(0.3)),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              child: Row(
-                children: [
-                  Icon(
-                    insight.type == InsightType.positive ? Icons.star : Icons.info_outline,
-                    color: color,
-                  ),
-                  AppSpacing.hGapMd,
-                  Expanded(
-                    child: Text(
-                      insight.message,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: color.withOpacity(0.8), fontWeight: FontWeight.w600),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       ),
-    );
-  }
-}
-
-class _ExpenseAnalyticsCard extends StatelessWidget {
-  final ExpenseAnalytics analytics;
-  const _ExpenseAnalyticsCard({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final currencyFormat = NumberFormat.currency(symbol: '₹', decimalDigits: 0);
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: AppSpacing.paddingAll,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text("Expenses", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                if (analytics.warningMessage != null)
-                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
-              ],
-            ),
-            AppSpacing.gapSm,
-            Text(
-              currencyFormat.format(analytics.totalSpent),
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
-            ),
-            Text(
-              "Total spent • Avg ${currencyFormat.format(analytics.averageDaily)}/day",
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
-            
-            if (analytics.warningMessage != null) ...[
-              AppSpacing.gapMd,
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.orange, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        analytics.warningMessage!,
-                        style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            if (analytics.chartData.isNotEmpty) ...[
-              AppSpacing.gapLg,
-              SizedBox(
-                height: 150,
-                child: _ExpenseLineChart(chartData: analytics.chartData),
-              ),
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ExpenseLineChart extends StatelessWidget {
-  final Map<String, double> chartData;
-
-  const _ExpenseLineChart({required this.chartData});
-
-  @override
-  Widget build(BuildContext context) {
-    if (chartData.isEmpty) return const SizedBox();
-
-    final theme = Theme.of(context);
-    
-    // Convert to spots
-    final sortedKeys = chartData.keys.toList()..sort();
-    final spots = <FlSpot>[];
-    double maxAmount = 0;
-    
-    for (int i = 0; i < sortedKeys.length; i++) {
-      final amount = chartData[sortedKeys[i]]!;
-      spots.add(FlSpot(i.toDouble(), amount));
-      if (amount > maxAmount) maxAmount = amount;
-    }
-
-    // Determine interval for Y axis to try keeping it clean
-    final interval = maxAmount > 0 ? (maxAmount / 4) : 100.0;
-    
-    return LineChart(
-      LineChartData(
-        gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          horizontalInterval: interval > 0 ? interval : null,
-          getDrawingHorizontalLine: (value) {
-            return FlLine(
-              color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-              strokeWidth: 1,
-              dashArray: [5, 5],
-            );
-          },
-        ),
-        titlesData: FlTitlesData(
-          show: true,
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 30,
-              interval: (sortedKeys.length / 5).ceilToDouble().clamp(1, double.infinity),
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() >= 0 && value.toInt() < sortedKeys.length) {
-                  final dateStr = sortedKeys[value.toInt()];
-                  final date = DateTime.parse(dateStr);
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      DateFormat('MM/dd').format(date),
-                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
-                    ),
-                  );
-                }
-                return const Text('');
-              },
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        minX: 0,
-        maxX: (sortedKeys.length - 1).toDouble(),
-        minY: 0,
-        maxY: maxAmount * 1.2,
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<DashboardDateFilter>(
+          value: value,
+          icon: Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: theme.colorScheme.primary),
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
             color: theme.colorScheme.primary,
-            barWidth: 3,
-            isStrokeCapRound: true,
-            dotData: const FlDotData(show: false),
-            belowBarData: BarAreaData(
-              show: true,
-              color: theme.colorScheme.primary.withOpacity(0.15),
-            ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TodoAnalyticsCard extends StatelessWidget {
-  final TodoAnalytics analytics;
-  const _TodoAnalyticsCard({required this.analytics});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: AppSpacing.paddingAll,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Tasks & Streaks", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            AppSpacing.gapMd,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _StatColumn(label: "Completed", value: "${analytics.completedTasks}/${analytics.totalTasks}", color: Colors.blue),
-                _StatColumn(label: "Current Streak", value: "${analytics.currentStreak} days", color: Colors.orange),
-                _StatColumn(label: "Best Streak", value: "${analytics.bestStreak} days", color: Colors.deepPurple),
-              ],
-            ),
-            AppSpacing.gapLg,
-            // Simple visual progress bar for completion %
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: analytics.totalTasks == 0 ? 0 : analytics.completionPercentage / 100,
-                minHeight: 12,
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                color: Colors.blue,
-              ),
-            ),
-            AppSpacing.gapSm,
-            Center(
-              child: Text(
-                "${analytics.completionPercentage.toStringAsFixed(1)}% completion rate",
-                style: theme.textTheme.labelSmall,
-              ),
-            ),
+          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+          dropdownColor: theme.colorScheme.surfaceContainerHigh,
+          items: const [
+            DropdownMenuItem(value: DashboardDateFilter.today, child: Text("Today")),
+            DropdownMenuItem(value: DashboardDateFilter.thisWeek, child: Text("Weekly")),
+            DropdownMenuItem(value: DashboardDateFilter.thisMonth, child: Text("Monthly")),
           ],
+          onChanged: onChanged,
         ),
       ),
-    );
-  }
-}
-
-class _StatColumn extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatColumn({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, color: color)),
-        Text(label, style: theme.textTheme.bodySmall),
-      ],
-    );
-  }
-}
-
-class _HealthMiniCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String value;
-  final String subtitle;
-  final Color color;
-
-  const _HealthMiniCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            AppSpacing.gapMd,
-            Text(value, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-            Text(title, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-            AppSpacing.gapXs,
-            Text(subtitle, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActivityStat extends StatelessWidget {
-  final IconData icon;
-  final int count;
-  final String label;
-
-  const _ActivityStat({required this.icon, required this.count, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: theme.colorScheme.secondaryContainer,
-          child: Icon(icon, color: theme.colorScheme.onSecondaryContainer),
-        ),
-        AppSpacing.gapSm,
-        Text(count.toString(), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        Text(label, style: theme.textTheme.bodySmall),
-      ],
     );
   }
 }

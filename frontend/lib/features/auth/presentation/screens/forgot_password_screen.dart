@@ -45,64 +45,71 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.status == AuthStatus.loading;
 
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(AppStrings.forgotPassword),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/login'),
-        ),
-      ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: AppSpacing.paddingHorizontal,
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const AuthHeader(),
-                  AppSpacing.gapLg,
-                  Text(
-                    'Enter your email address and we\'ll send you a link to reset your password.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  AppSpacing.gapXl,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AuthHeader(),
+                    AppSpacing.gapLg,
+                    Text(
+                      'Enter your email address and we\'ll send you a link to reset your password.',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    AppSpacing.gapXl,
 
-                  // Email
-                  AuthTextField(
-                    controller: _emailController,
-                    labelText: AppStrings.email,
-                    prefixIcon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return AppStrings.requiredEmail;
-                      }
-                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return AppStrings.invalidEmail;
-                      }
-                      return null;
-                    },
-                  ),
-                  AppSpacing.gapLg,
+                    // Email
+                    AuthTextField(
+                      controller: _emailController,
+                      labelText: AppStrings.email,
+                      prefixIcon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return AppStrings.requiredEmail;
+                        }
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                          return AppStrings.invalidEmail;
+                        }
+                        return null;
+                      },
+                    ),
+                    AppSpacing.gapLg,
 
-                  // Submit
-                  AuthSubmitButton(
-                    label: AppStrings.sendResetLink,
-                    isLoading: isLoading,
-                    onPressed: _handleResetPassword,
-                  ),
-                  AppSpacing.gapMd,
+                    // Submit
+                    AuthSubmitButton(
+                      label: AppStrings.sendResetLink,
+                      isLoading: isLoading,
+                      onPressed: _handleResetPassword,
+                    ),
+                    AppSpacing.gapXl,
 
-                  TextButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text(AppStrings.backToLogin),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () => context.go('/login'),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.arrow_back, size: 16),
+                          AppSpacing.hGapXs,
+                          const Text(AppStrings.backToLogin),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

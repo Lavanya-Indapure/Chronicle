@@ -10,8 +10,8 @@ enum VisionCategory {
 }
 
 enum VisionStatus {
-  not_started,
-  in_progress,
+  notStarted,
+  inProgress,
   completed,
 }
 

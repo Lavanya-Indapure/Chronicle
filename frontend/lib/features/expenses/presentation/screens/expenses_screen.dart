@@ -10,6 +10,12 @@ import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/features/expenses/presentation/screens/transaction_history_screen.dart';
 import 'package:chronicle/features/expenses/presentation/screens/expense_history_screen.dart';
 
+import 'package:chronicle/features/expenses/presentation/widgets/debt_card.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/budget_card.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/expense_insights_card.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/expense_list_tile.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/transaction_list_tile.dart';
+
 class ExpensesScreen extends ConsumerStatefulWidget {
   const ExpensesScreen({super.key});
 
@@ -74,9 +80,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
           controller: controller,
           keyboardType: TextInputType.number,
           autofocus: true,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Budget Amount',
-            prefixIcon: Icon(Icons.attach_money),
+            prefixIcon: const Icon(Icons.currency_rupee_rounded),
+            hintText: 'Enter amount...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSpacing.radiusMd)),
           ),
         ),
         actions: [
@@ -85,12 +93,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
             onPressed: () async {
               final amount = double.tryParse(controller.text);
               if (amount != null) {
-                // Confirm if editing (simplification: always confirm for now as per prompt)
-                final confirmed = await showDialog<bool>(
+                await showDialog<bool>(
                   context: context,
                   builder: (confirmCtx) => AlertDialog(
                     title: const Text('Confirm Budget Change'),
-                    content: const Text('Are you sure you want to update your budget?'),
+                    content: const Text('Update your goal for this period?'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(confirmCtx, false), child: const Text('No')),
                       TextButton(onPressed: () => Navigator.pop(confirmCtx, true), child: const Text('Yes')),
@@ -98,17 +105,12 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   ),
                 );
 
-                if (confirmed == true) {
-                  await ref.read(expenseControllerProvider.notifier).setBudget(
-                        amount: amount,
-                        type: type,
-                        startDate: DateTime.now(),
-                      );
-                  if (mounted) Navigator.pop(ctx);
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
                 }
               }
             },
-            child: const Text('Set'),
+            child: const Text('Set Budget'),
           ),
         ],
       ),
@@ -138,14 +140,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Expenses'),
+        title: const Text('Finance'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // Quick way to set budgets
-              _showBudgetOptions();
-            },
+            icon: const Icon(Icons.tune_rounded),
+            onPressed: _showBudgetOptions,
           ),
         ],
       ),
@@ -154,26 +153,26 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         child: state.isLoading && state.expenses.isEmpty
             ? const Center(child: CircularProgressIndicator())
             : ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: AppSpacing.paddingScreen,
                 children: [
-                  // Debt Summary Row
+                  // Debt Summary
                   Row(
                     children: [
                       Expanded(
-                        child: _DebtCard(
+                        child: DebtCard(
                           title: 'You Owe',
                           amount: state.youOwe,
-                          color: Colors.red,
-                          icon: Icons.unarchive_outlined,
+                          color: theme.colorScheme.error,
+                          icon: Icons.upload_rounded,
                         ),
                       ),
-                      AppSpacing.gapMd,
+                      AppSpacing.hGapMd,
                       Expanded(
-                        child: _DebtCard(
+                        child: DebtCard(
                           title: 'Others Owe',
                           amount: state.othersOweYou,
                           color: Colors.green,
-                          icon: Icons.archive_outlined,
+                          icon: Icons.download_rounded,
                         ),
                       ),
                     ],
@@ -181,26 +180,26 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   AppSpacing.gapLg,
 
                   // Budget Summaries
-                  _BudgetCard(
+                  BudgetCard(
                     title: 'Weekly Budget',
                     budget: state.currentWeeklyBudget,
                     spent: _calculateSpentForPeriod(state.expenses, isWeekly: true),
-                    color: Colors.blue,
+                    color: theme.colorScheme.primary,
                     onSet: () => _showSetBudget(context, BudgetType.weekly),
                   ),
                   AppSpacing.gapMd,
-                  _BudgetCard(
+                  BudgetCard(
                     title: 'Monthly Budget',
                     budget: state.currentMonthlyBudget,
                     spent: _calculateSpentForPeriod(state.expenses, isWeekly: false),
-                    color: Colors.purple,
+                    color: Colors.indigo,
                     onSet: () => _showSetBudget(context, BudgetType.monthly),
                   ),
                   AppSpacing.gapLg,
 
-                  // Insights Card
+                  // Insights
                   if (state.unnecessarySpent > 0) ...[
-                    _InsightsCard(unnecessarySpent: state.unnecessarySpent),
+                    ExpenseInsightsCard(unnecessarySpent: state.unnecessarySpent),
                     AppSpacing.gapLg,
                   ],
 
@@ -208,25 +207,40 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Recent Expenses', style: theme.textTheme.titleMedium),
+                      Text(
+                        'Recent Expenses', 
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        )
+                      ),
                       TextButton(
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(builder: (ctx) => const ExpenseHistoryScreen()),
                         ),
-                        child: const Text('See All'),
+                        child: Text(
+                          'See All',
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                   AppSpacing.gapSm,
 
                   if (state.expenses.isEmpty)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Text('No expenses logged yet.'),
+                    Center(child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'No expenses logged yet.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
                     ))
                   else
-                    ...state.expenses.map((e) => _ExpenseTile(expense: e)),
+                    ...state.expenses.take(5).map((e) => ExpenseListTile(expense: e)),
                   
                   AppSpacing.gapLg,
 
@@ -234,7 +248,13 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Pending Debts', style: theme.textTheme.titleMedium),
+                      Text(
+                        'Pending Debts', 
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        )
+                      ),
                       Row(
                         children: [
                           TextButton(
@@ -244,9 +264,10 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                             ),
                             child: const Text('View All'),
                           ),
-                          TextButton(
+                          IconButton(
                             onPressed: () => _showAddTransaction(context),
-                            child: const Text('Add Debt'),
+                            icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                            color: theme.colorScheme.primary,
                           ),
                         ],
                       ),
@@ -255,21 +276,25 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                   AppSpacing.gapSm,
 
                   if (state.transactions.where((t) => t.status == TransactionStatus.pending).isEmpty)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Text('All settled! No pending debts.'),
+                    Center(child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'All settled! No pending debts.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      ),
                     ))
                   else
                     ...state.transactions
                         .where((t) => t.status == TransactionStatus.pending)
-                        .map((t) => _TransactionTile(
+                        .take(5)
+                        .map((t) => TransactionListTile(
                               transaction: t,
                               onSettle: () async {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
                                   builder: (ctx) => AlertDialog(
                                     title: const Text('Confirm Settlement'),
-                                    content: Text('Are you sure you want to mark the debt from ${t.personName} as settled?'),
+                                    content: Text('Mark debt from ${t.personName} as settled?'),
                                     actions: [
                                       TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
                                       TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Settle')),
@@ -282,13 +307,15 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               },
                             )),
                   
-                  AppSpacing.gapXl, // Bottom padding
+                  AppSpacing.gapXxl,
                 ],
               ),
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showAddExpense(context),
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Log Expense'),
+        elevation: 4,
       ),
     );
   }
@@ -300,8 +327,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            AppSpacing.gapMd,
             ListTile(
-              leading: const Icon(Icons.calendar_view_week),
+              leading: const Icon(Icons.calendar_view_week_rounded),
               title: const Text('Set Weekly Budget'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -309,254 +337,16 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.calendar_month),
+              leading: const Icon(Icons.calendar_month_rounded),
               title: const Text('Set Monthly Budget'),
               onTap: () {
                 Navigator.pop(ctx);
                 _showSetBudget(context, BudgetType.monthly);
               },
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DebtCard extends StatelessWidget {
-  final String title;
-  final double amount;
-  final Color color;
-  final IconData icon;
-
-  const _DebtCard({
-    required this.title,
-    required this.amount,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      color: color.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        side: BorderSide(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 20),
-            AppSpacing.gapSm,
-            Text(title, style: theme.textTheme.labelMedium?.copyWith(color: color)),
-            AppSpacing.gapXs,
-            Text(
-              '₹${amount.toStringAsFixed(0)}',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BudgetCard extends StatelessWidget {
-  final String title;
-  final double budget;
-  final double spent;
-  final Color color;
-  final VoidCallback onSet;
-
-  const _BudgetCard({
-    required this.title,
-    required this.budget,
-    required this.spent,
-    required this.color,
-    required this.onSet,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final progress = budget > 0 ? (spent / budget).clamp(0.0, 1.0) : 0.0;
-    final isOver = spent > budget && budget > 0;
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(title, style: theme.textTheme.titleSmall),
-                IconButton(
-                  icon: const Icon(Icons.edit, size: 16),
-                  onPressed: onSet,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            AppSpacing.gapSm,
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  budget > 0 ? '${spent.toStringAsFixed(0)} / ${budget.toStringAsFixed(0)}' : 'No budget set',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: isOver ? Colors.red : null,
-                  ),
-                ),
-                if (budget > 0)
-                  Text('${(progress * 100).toStringAsFixed(0)}%', style: theme.textTheme.bodyMedium),
-              ],
-            ),
             AppSpacing.gapMd,
-            ClipRRect(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(isOver ? Colors.red : color),
-              ),
-            ),
-            if (isOver) ...[
-              AppSpacing.gapSm,
-              Text(
-                'Over budget by ${(spent - budget).toStringAsFixed(0)}',
-                style: theme.textTheme.bodySmall?.copyWith(color: Colors.red),
-              ),
-            ],
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _InsightsCard extends StatelessWidget {
-  final double unnecessarySpent;
-
-  const _InsightsCard({required this.unnecessarySpent});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.amber.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.lightbulb_outline, color: Colors.amber),
-          AppSpacing.gapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Savings Insight', style: theme.textTheme.titleSmall?.copyWith(color: Colors.amber.shade900)),
-                Text(
-                  'You could have saved ₹${unnecessarySpent.toStringAsFixed(0)} this period!',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExpenseTile extends StatelessWidget {
-  final Expense expense;
-
-  const _ExpenseTile({required this.expense});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: (expense.isNecessary ? Colors.blue : Colors.orange).withValues(alpha: 0.1),
-        child: Icon(
-          expense.isNecessary ? Icons.check_circle_outline : Icons.shopping_bag_outlined,
-          color: expense.isNecessary ? Colors.blue : Colors.orange,
-        ),
-      ),
-      title: Text(expense.description ?? expense.category?.name ?? 'Expense'),
-      subtitle: Text(
-        '${expense.expenseDate.toString().split(' ').first}${expense.category != null && expense.description != null ? ' • ${expense.category!.name}' : ''}',
-      ),
-      trailing: Text(
-        '₹${expense.amount.toStringAsFixed(0)}',
-        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-class _TransactionTile extends StatelessWidget {
-  final Transaction transaction;
-  final VoidCallback onSettle;
-
-  const _TransactionTile({required this.transaction, required this.onSettle});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLend = transaction.type == TransactionType.LEND;
-
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: (isLend ? Colors.green : Colors.red).withValues(alpha: 0.1),
-        child: Icon(
-          isLend ? Icons.arrow_upward : Icons.arrow_downward,
-          color: isLend ? Colors.green : Colors.red,
-        ),
-      ),
-      title: Text(transaction.personName),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (transaction.reason != null) Text(transaction.reason!),
-          Text(transaction.date.toString().split(' ').first, style: theme.textTheme.bodySmall),
-        ],
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '₹${transaction.amount.toStringAsFixed(0)}',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: isLend ? Colors.green : Colors.red,
-            ),
-          ),
-          AppSpacing.gapSm,
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline, color: Colors.blue),
-            onPressed: onSettle,
-            tooltip: 'Settle',
-          ),
-        ],
       ),
     );
   }
