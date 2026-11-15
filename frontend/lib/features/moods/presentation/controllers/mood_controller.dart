@@ -41,7 +41,7 @@ class MoodController extends Notifier<MoodState> {
 
   @override
   MoodState build() {
-    _repository = ref.watch(moodRepositoryProvider) as MoodRepositoryImpl;
+    _repository = ref.watch(moodRepositoryProvider);
     _loadMoods();
     return const MoodState();
   }
@@ -68,9 +68,16 @@ class MoodController extends Notifier<MoodState> {
     _loadMoods();
   }
 
+  /// Removes the entry immediately (a swiped card must leave the list),
+  /// then deletes it; restores it if the delete fails.
   Future<void> deleteMood(String id) async {
-    await _repository.deleteMood(id);
-    _loadMoods();
+    final previous = state.moods;
+    state = state.copyWith(moods: previous.where((m) => m.id != id).toList());
+    try {
+      await _repository.deleteMood(id);
+    } catch (_) {
+      state = state.copyWith(moods: previous);
+    }
   }
 }
 

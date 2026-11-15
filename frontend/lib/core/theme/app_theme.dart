@@ -110,7 +110,9 @@ abstract final class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusXl),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: p.surface,
+        // surfaceVariant (not surface) so unselected chips stay visible on
+        // bottom sheets, whose background is surface.
+        backgroundColor: p.surfaceVariant,
         selectedColor: p.textPrimary,
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusPill),

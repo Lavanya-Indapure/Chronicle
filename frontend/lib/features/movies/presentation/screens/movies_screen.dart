@@ -1,154 +1,204 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/app_search_field.dart';
+import 'package:chronicle/core/widgets/empty_state.dart';
+import 'package:chronicle/core/widgets/icon_badge.dart';
+import 'package:chronicle/core/widgets/pill_tabs.dart';
+import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/core/widgets/star_rating.dart';
+import 'package:chronicle/features/movies/domain/models/movie.dart';
 import 'package:chronicle/features/movies/presentation/controllers/movie_controller.dart';
 import 'package:chronicle/features/movies/presentation/widgets/add_movie_sheet.dart';
-import 'package:chronicle/features/movies/domain/models/movie.dart';
+import 'package:chronicle/features/movies/presentation/widgets/movie_platform.dart';
 
 class MoviesScreen extends ConsumerWidget {
   const MoviesScreen({super.key});
 
+  static const List<String?> _platforms = [null, MoviePlatform.theatre, MoviePlatform.digital];
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(movieControllerProvider);
-    final theme = Theme.of(context);
+    final controller = ref.read(movieControllerProvider.notifier);
     final movies = state.filteredMovies;
 
+    ref.listen(movieControllerProvider.select((s) => s.errorMessage), (prev, next) {
+      if (next != null && next != prev) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next)));
+      }
+    });
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Movies Watched'),
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SearchBar(
-              hintText: 'Search by movie name...',
-              leading: const Icon(Icons.search),
-              onChanged: (value) => ref.read(movieControllerProvider.notifier).setSearchQuery(value),
-              elevation: WidgetStateProperty.all(0),
-              backgroundColor: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
-            ),
-          ),
-          Expanded(
-            child: state.isLoading && state.movies.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : movies.isEmpty
-                    ? _EmptyMovies()
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        itemCount: movies.length,
-                        separatorBuilder: (_, __) => AppSpacing.gapMd,
-                        itemBuilder: (context, index) {
-                          final m = movies[index];
-                          return _MovieTile(movie: m);
-                        },
+      appBar: AppBar(title: const Text(AppStrings.moviesWatched)),
+      body: state.isLoading && state.movies.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : state.movies.isEmpty
+              ? EmptyState(
+                  icon: Icons.movie_rounded,
+                  title: AppStrings.moviesEmptyTitle,
+                  message: AppStrings.moviesEmptyMessage,
+                  actionLabel: AppStrings.logMovie,
+                  onAction: () => _showMovieSheet(context),
+                )
+              : RefreshIndicator(
+                  onRefresh: controller.loadMovies,
+                  child: ListView(
+                    // Bottom padding keeps the last card clear of the FAB.
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.gutter,
+                      AppSpacing.sm,
+                      AppSpacing.gutter,
+                      AppSpacing.xxxl + AppSpacing.xl,
+                    ),
+                    children: [
+                      _YearSummary(count: state.watchedThisYear, theatreSpend: state.theatreSpendThisYear),
+                      AppSpacing.gapMd,
+                      AppSearchField(hint: AppStrings.searchMoviesHint, onChanged: controller.setSearchQuery),
+                      AppSpacing.gapMd,
+                      PillTabs<String?>(
+                        values: _platforms,
+                        labelOf: (p) => '${p == null ? AppStrings.statusAll : MoviePlatform.label(p)} ${state.countFor(p)}',
+                        selected: state.platformFilter,
+                        onChanged: controller.setPlatformFilter,
                       ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddMovie(context),
-        label: const Text('Log Movie'),
-        icon: const Icon(Icons.movie_outlined),
-      ),
-    );
-  }
-
-  void _showAddMovie(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
-      builder: (ctx) => const AddMovieSheet(),
-    );
-  }
-}
-
-class _MovieTile extends StatelessWidget {
-  final Movie movie;
-
-  const _MovieTile({required this.movie});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isTheatre = movie.platform == 'theatre';
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
-      ),
-      child: ListTile(
-        onTap: () => _showEditMovie(context),
-        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-        leading: Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: isTheatre ? theme.colorScheme.primaryContainer : theme.colorScheme.secondaryContainer,
-            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          ),
-          child: Icon(
-            isTheatre ? Icons.theaters_outlined : Icons.laptop_mac_outlined,
-            color: isTheatre ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSecondaryContainer,
-          ),
-        ),
-        title: Text(movie.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(DateFormat('MMM dd, yyyy').format(movie.watchDate)),
-            Row(
-              children: [
-                ...List.generate(5, (i) => Icon(
-                  Icons.star,
-                  size: 14,
-                  color: i < movie.rating ? Colors.amber : theme.disabledColor,
-                )),
-                if (isTheatre && movie.cost != null) ...[
-                  const Text(' • '),
-                  Text('₹${movie.cost!.toStringAsFixed(0)}', style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold)),
-                ],
-              ],
+                      AppSpacing.gapLg,
+                      // (EmptyState scrolls itself, so it can't sit inside this ListView.)
+                      if (movies.isEmpty)
+                        SurfaceCard(
+                          child: Column(
+                            children: [
+                              Text(AppStrings.libraryNoMatchesTitle, style: Theme.of(context).textTheme.titleMedium),
+                              AppSpacing.gapXs,
+                              Text(AppStrings.libraryNoMatchesMessage, style: Theme.of(context).textTheme.bodyMedium),
+                            ],
+                          ),
+                        )
+                      else
+                        for (final m in movies) ...[
+                          _MovieCard(movie: m, onTap: () => _showMovieSheet(context, movie: m)),
+                          if (m != movies.last) AppSpacing.gapSm,
+                        ],
+                    ],
+                  ),
+                ),
+      floatingActionButton: state.movies.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _showMovieSheet(context),
+              label: const Text(AppStrings.logMovie),
+              icon: const Icon(Icons.add_rounded),
             ),
-          ],
-        ),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-      ),
     );
   }
 
-  void _showEditMovie(BuildContext context) {
+  void _showMovieSheet(BuildContext context, {Movie? movie}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
       builder: (ctx) => AddMovieSheet(movie: movie),
     );
   }
 }
 
-class _EmptyMovies extends StatelessWidget {
+/// "12 movies this year · ₹1,450 spent at theatres"
+class _YearSummary extends StatelessWidget {
+  final int count;
+  final double theatreSpend;
+
+  const _YearSummary({required this.count, required this.theatreSpend});
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+    final colors = theme.colorScheme;
+    final ink = colors.onPrimaryContainer;
+
+    Widget stat(String value, String label) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value, style: theme.textTheme.headlineSmall?.copyWith(color: ink, fontWeight: FontWeight.w700)),
+              ),
+              Text(label, style: theme.textTheme.bodySmall?.copyWith(color: ink), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        );
+
+    return Container(
+      padding: AppSpacing.paddingCard,
+      decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: AppSpacing.borderRadiusXl),
+      child: Row(
         children: [
-          Icon(Icons.movie_filter_outlined, size: 64, color: theme.disabledColor),
-          AppSpacing.gapMd,
-          Text('No movies logged yet', style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor)),
-          AppSpacing.gapSm,
-          const Text('Track your cinema and streaming memories!'),
+          stat(
+            '$count ${count == 1 ? AppStrings.movieCountSuffix : AppStrings.moviesCountSuffix}',
+            AppStrings.moviesThisYear,
+          ),
+          AppSpacing.hGapMd,
+          stat(AppFormatters.currency(theatreSpend), AppStrings.theatreSpend),
+        ],
+      ),
+    );
+  }
+}
+
+class _MovieCard extends StatelessWidget {
+  final Movie movie;
+  final VoidCallback onTap;
+
+  const _MovieCard({required this.movie, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isTheatre = movie.platform == MoviePlatform.theatre;
+    final comment = movie.comments?.trim();
+
+    return SurfaceCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconBadge(icon: MoviePlatform.icon(movie.platform), color: MoviePlatform.color(movie.platform)),
+          AppSpacing.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  movie.name,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  '${AppFormatters.dayMonthYear(movie.watchDate)} · ${MoviePlatform.label(movie.platform)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+                AppSpacing.gapSm,
+                StarRatingDisplay(rating: movie.rating.toDouble()),
+                if (comment != null && comment.isNotEmpty) ...[
+                  AppSpacing.gapSm,
+                  Text(
+                    comment,
+                    style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (isTheatre && movie.cost != null) ...[
+            AppSpacing.hGapSm,
+            Text(AppFormatters.currency(movie.cost!), style: theme.textTheme.titleSmall),
+          ],
         ],
       ),
     );

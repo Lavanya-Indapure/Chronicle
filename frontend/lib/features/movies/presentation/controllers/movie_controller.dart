@@ -13,11 +13,15 @@ class MovieState extends Equatable {
   final List<Movie> movies;
   final String searchQuery;
 
+  /// 'theatre', 'mobile-laptop', or null for all.
+  final String? platformFilter;
+
   const MovieState({
     this.isLoading = false,
     this.errorMessage,
     this.movies = const [],
     this.searchQuery = '',
+    this.platformFilter,
   });
 
   MovieState copyWith({
@@ -25,22 +29,41 @@ class MovieState extends Equatable {
     String? errorMessage,
     List<Movie>? movies,
     String? searchQuery,
+    String? platformFilter,
+    bool clearPlatform = false,
   }) {
     return MovieState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
       movies: movies ?? this.movies,
       searchQuery: searchQuery ?? this.searchQuery,
+      platformFilter: clearPlatform ? null : (platformFilter ?? this.platformFilter),
     );
   }
 
+  /// Search + platform filter applied, newest watch first.
   List<Movie> get filteredMovies {
-    if (searchQuery.isEmpty) return movies;
-    return movies.where((m) => m.name.toLowerCase().contains(searchQuery.toLowerCase())).toList();
+    final query = searchQuery.toLowerCase();
+    return movies
+        .where((m) => platformFilter == null || m.platform == platformFilter)
+        .where((m) => query.isEmpty || m.name.toLowerCase().contains(query))
+        .toList()
+      ..sort((a, b) => b.watchDate.compareTo(a.watchDate));
   }
 
+  int countFor(String? platform) => platform == null ? movies.length : movies.where((m) => m.platform == platform).length;
+
+  bool get hasActiveFilters => searchQuery.isNotEmpty || platformFilter != null;
+
+  List<Movie> get _thisYear => movies.where((m) => m.watchDate.year == DateTime.now().year).toList();
+
+  int get watchedThisYear => _thisYear.length;
+
+  double get theatreSpendThisYear =>
+      _thisYear.where((m) => m.platform == 'theatre').fold(0.0, (sum, m) => sum + (m.cost ?? 0));
+
   @override
-  List<Object?> get props => [isLoading, errorMessage, movies, searchQuery];
+  List<Object?> get props => [isLoading, errorMessage, movies, searchQuery, platformFilter];
 }
 
 class MovieController extends Notifier<MovieState> {
@@ -67,37 +90,45 @@ class MovieController extends Notifier<MovieState> {
     }
   }
 
-  Future<void> createMovie(Movie movie) async {
+  Future<bool> createMovie(Movie movie) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.createMovie(movie);
       await loadMovies();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
-  Future<void> updateMovie(String id, Movie movie) async {
+  Future<bool> updateMovie(String id, Movie movie) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.updateMovie(id, movie);
       await loadMovies();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
-  Future<void> deleteMovie(String id) async {
+  Future<bool> deleteMovie(String id) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.deleteMovie(id);
       await loadMovies();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
   void setSearchQuery(String query) => state = state.copyWith(searchQuery: query);
+  void setPlatformFilter(String? platform) =>
+      state = state.copyWith(platformFilter: platform, clearPlatform: platform == null);
 }
 
 final movieControllerProvider = NotifierProvider<MovieController, MovieState>(MovieController.new);

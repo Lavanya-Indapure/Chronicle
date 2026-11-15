@@ -1,192 +1,216 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/app_search_field.dart';
+import 'package:chronicle/core/widgets/empty_state.dart';
+import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
+import 'package:chronicle/features/thoughts/domain/models/thought.dart';
 import 'package:chronicle/features/thoughts/presentation/controllers/thought_controller.dart';
 import 'package:chronicle/features/thoughts/presentation/widgets/add_thought_sheet.dart';
-import 'package:chronicle/features/thoughts/domain/models/thought.dart';
 
 class ThoughtsScreen extends ConsumerWidget {
   const ThoughtsScreen({super.key});
 
+  static void _openSheet(BuildContext context, {Thought? thought}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AddThoughtSheet(thought: thought),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(thoughtControllerProvider);
-    final theme = Theme.of(context);
+    final controller = ref.read(thoughtControllerProvider.notifier);
     final thoughts = state.filteredThoughts;
-    final allTags = state.allTags;
+    final hasAny = state.thoughts.isNotEmpty;
+
+    ref.listen(thoughtControllerProvider.select((s) => s.errorMessage), (prev, next) {
+      if (next != null && next != prev) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next)));
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thoughts & Quotes'),
+        title: const Text(AppStrings.thoughtsTitle),
         actions: [
-          IconButton(
-            icon: Icon(state.onlyFavorites ? Icons.favorite : Icons.favorite_border, color: state.onlyFavorites ? Colors.red : null),
-            onPressed: () => ref.read(thoughtControllerProvider.notifier).toggleOnlyFavorites(),
-          ),
+          if (hasAny)
+            IconButton(
+              tooltip: AppStrings.thoughtsFavoritesOnly,
+              isSelected: state.onlyFavorites,
+              icon: const Icon(Icons.favorite_border_rounded),
+              selectedIcon: const Icon(Icons.favorite_rounded, color: AppColors.error),
+              onPressed: controller.toggleOnlyFavorites,
+            ),
+          AppSpacing.hGapXs,
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SearchBar(
-              hintText: 'Search thoughts or tags...',
-              leading: const Icon(Icons.search),
-              onChanged: (value) => ref.read(thoughtControllerProvider.notifier).setSearchQuery(value),
-              elevation: WidgetStateProperty.all(0),
-              backgroundColor: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
-            ),
-          ),
-          if (allTags.isNotEmpty)
-            SizedBox(
-              height: 40,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                scrollDirection: Axis.horizontal,
-                itemCount: allTags.length + 1,
-                separatorBuilder: (_, _) => AppSpacing.gapSm,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return FilterChip(
-                      label: const Text('All'),
-                      selected: state.selectedTag == null,
-                      onSelected: (v) => ref.read(thoughtControllerProvider.notifier).setSelectedTag(null),
-                    );
-                  }
-                  final tag = allTags[index - 1];
-                  return FilterChip(
-                    label: Text(tag),
-                    selected: state.selectedTag == tag,
-                    onSelected: (v) => ref.read(thoughtControllerProvider.notifier).setSelectedTag(v ? tag : null),
-                  );
-                },
-              ),
-            ),
-          Expanded(
-            child: state.isLoading && state.thoughts.isEmpty
-                ? const Center(child: CircularProgressIndicator())
-                : thoughts.isEmpty
-                    ? _EmptyThoughts()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(AppSpacing.md),
-                        itemCount: thoughts.length,
-                        itemBuilder: (context, index) {
-                          final t = thoughts[index];
-                          return _ThoughtCard(thought: t);
-                        },
+      body: state.isLoading && !hasAny
+          ? const Center(child: CircularProgressIndicator())
+          : !hasAny
+              ? EmptyState(
+                  icon: Icons.format_quote_rounded,
+                  title: AppStrings.thoughtsEmptyTitle,
+                  message: AppStrings.thoughtsEmptyMessage,
+                  actionLabel: AppStrings.thoughtsAddFirst,
+                  onAction: () => _openSheet(context),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, AppSpacing.md),
+                      child: AppSearchField(hint: AppStrings.thoughtsSearchHint, onChanged: controller.setSearchQuery),
+                    ),
+                    if (state.allTags.isNotEmpty) ...[
+                      _TagFilterRow(
+                        tags: state.allTags,
+                        selected: state.selectedTag,
+                        onSelected: controller.setSelectedTag,
                       ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddThought(context),
-        child: const Icon(Icons.add_comment_outlined),
-      ),
-    );
-  }
-
-  void _showAddThought(BuildContext context, {Thought? thought}) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
-      builder: (ctx) => AddThoughtSheet(thought: thought),
+                      AppSpacing.gapMd,
+                    ],
+                    Expanded(
+                      child: thoughts.isEmpty
+                          ? const EmptyState(
+                              icon: Icons.search_off_rounded,
+                              title: AppStrings.journalNoResultsTitle,
+                              message: AppStrings.journalNoResultsMessage,
+                              muted: true,
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(
+                                AppSpacing.gutter, 0, AppSpacing.gutter, AppSpacing.xxxl + AppSpacing.xl),
+                              itemCount: thoughts.length,
+                              separatorBuilder: (_, _) => AppSpacing.gapSm,
+                              itemBuilder: (context, index) => _ThoughtCard(
+                                thought: thoughts[index],
+                                onTap: () => _openSheet(context, thought: thoughts[index]),
+                                onToggleFavorite: () => controller.toggleFavorite(thoughts[index]),
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+      floatingActionButton: hasAny
+          ? FloatingActionButton.extended(
+              onPressed: () => _openSheet(context),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text(AppStrings.thoughtsAdd),
+            )
+          : null,
     );
   }
 }
 
-class _ThoughtCard extends ConsumerWidget {
-  final Thought thought;
+/// Horizontal "All · #life · #motivation" filter chips.
+class _TagFilterRow extends StatelessWidget {
+  final List<String> tags;
+  final String? selected;
+  final ValueChanged<String?> onSelected;
 
-  const _ThoughtCard({required this.thought});
+  const _TagFilterRow({required this.tags, required this.selected, required this.onSelected});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final tags = thought.tags?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? [];
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: BorderSide(color: theme.colorScheme.outlineVariant),
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppSpacing.xxl - AppSpacing.xs,
+      child: ListView.separated(
+        padding: AppSpacing.paddingGutter,
+        scrollDirection: Axis.horizontal,
+        itemCount: tags.length + 1,
+        separatorBuilder: (_, _) => AppSpacing.hGapSm,
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return ChoiceChip(
+              showCheckmark: false,
+              label: const Text(AppStrings.journalAll),
+              selected: selected == null,
+              onSelected: (_) => onSelected(null),
+            );
+          }
+          final tag = tags[index - 1];
+          return ChoiceChip(
+            showCheckmark: false,
+            label: Text('#$tag'),
+            selected: selected == tag,
+            onSelected: (v) => onSelected(v ? tag : null),
+          );
+        },
       ),
-      child: InkWell(
-        onTap: () => _showEditThought(context),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.format_quote, color: Colors.grey, size: 24),
-                  AppSpacing.gapSm,
-                  Expanded(
-                    child: Text(
-                      thought.content,
-                      style: theme.textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic, height: 1.4),
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(thought.isFavorite ? Icons.favorite : Icons.favorite_border, color: thought.isFavorite ? Colors.red : null),
-                    onPressed: () => ref.read(thoughtControllerProvider.notifier).toggleFavorite(thought),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
-              if (tags.isNotEmpty) ...[
-                AppSpacing.gapMd,
-                Wrap(
-                  spacing: 4,
-                  runSpacing: 4,
-                  children: tags.map((tag) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text('#$tag', style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.secondary)),
-                  )).toList(),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showEditThought(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
-      builder: (ctx) => AddThoughtSheet(thought: thought),
     );
   }
 }
 
-class _EmptyThoughts extends StatelessWidget {
+class _ThoughtCard extends StatelessWidget {
+  final Thought thought;
+  final VoidCallback onTap;
+  final VoidCallback onToggleFavorite;
+
+  const _ThoughtCard({required this.thought, required this.onTap, required this.onToggleFavorite});
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
+    final colors = theme.colorScheme;
+    final tags = thought.tags?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? const [];
+
+    return SurfaceCard(
+      onTap: onTap,
+      padding: const EdgeInsets.fromLTRB(AppSpacing.cardPadding, AppSpacing.md, AppSpacing.sm, AppSpacing.md),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lightbulb_outline, size: 64, color: theme.disabledColor),
-          AppSpacing.gapMd,
-          Text('No thoughts captured', style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor)),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
+                child: Icon(Icons.format_quote_rounded, color: colors.primary, size: AppSpacing.lg),
+              ),
+              AppSpacing.hGapSm,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    thought.content,
+                    style: theme.textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: AppStrings.thoughtFavorite,
+                isSelected: thought.isFavorite,
+                onPressed: onToggleFavorite,
+                icon: Icon(Icons.favorite_border_rounded, color: colors.onSurfaceVariant),
+                selectedIcon: const Icon(Icons.favorite_rounded, color: AppColors.error),
+              ),
+            ],
+          ),
           AppSpacing.gapSm,
-          const Text('Record your favorite quotes and ideas!'),
+          Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.md - 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [for (final tag in tags) TagPill(text: '#$tag', color: AppColors.chartBlue)],
+                  ),
+                ),
+                AppSpacing.hGapSm,
+                Text(AppFormatters.dayMonthYear(thought.createdAt), style: theme.textTheme.labelSmall),
+              ],
+            ),
+          ),
         ],
       ),
     );

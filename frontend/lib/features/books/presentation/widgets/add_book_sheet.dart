@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
-import 'package:chronicle/features/books/presentation/controllers/book_controller.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/features/books/domain/models/book.dart';
+import 'package:chronicle/features/books/presentation/controllers/book_controller.dart';
+import 'package:chronicle/core/widgets/star_rating.dart';
 
+/// Add a book, or edit/delete [book] when given.
 class AddBookSheet extends ConsumerStatefulWidget {
   final Book? book;
 
@@ -15,180 +21,163 @@ class AddBookSheet extends ConsumerStatefulWidget {
 
 class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _authorController = TextEditingController();
-  final _takeawaysController = TextEditingController();
-  
-  String _status = 'reading';
-  double? _rating;
-  bool _isFavorite = false;
+  late final _nameController = TextEditingController(text: widget.book?.name);
+  late final _authorController = TextEditingController(text: widget.book?.author);
+  late final _takeawaysController = TextEditingController(text: widget.book?.takeaways);
+
+  late String _status = widget.book?.status ?? 'reading';
+  late int? _rating = widget.book?.rating?.round();
+  late bool _isFavorite = widget.book?.isFavorite ?? false;
   bool _isSubmitting = false;
 
+  bool get _isEditing => widget.book != null;
+
   @override
-  void initState() {
-    super.initState();
-    if (widget.book != null) {
-      _nameController.text = widget.book!.name;
-      _authorController.text = widget.book!.author ?? '';
-      _takeawaysController.text = widget.book!.takeaways ?? '';
-      _status = widget.book!.status;
-      _rating = widget.book!.rating;
-      _isFavorite = widget.book!.isFavorite;
-    }
+  void dispose() {
+    _nameController.dispose();
+    _authorController.dispose();
+    _takeawaysController.dispose();
+    super.dispose();
   }
+
+  static String? _orNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSubmitting = true);
-    try {
-      if (widget.book == null) {
-        await ref.read(bookControllerProvider.notifier).createBook(
-          name: _nameController.text.trim(),
-          author: _authorController.text.trim().isEmpty ? null : _authorController.text.trim(),
-          takeaways: _takeawaysController.text.trim().isEmpty ? null : _takeawaysController.text.trim(),
-          status: _status,
-          rating: _rating,
-          isFavorite: _isFavorite,
-        );
-      } else {
-        await ref.read(bookControllerProvider.notifier).updateBook(
-          id: widget.book!.id,
-          name: _nameController.text.trim(),
-          author: _authorController.text.trim().isEmpty ? null : _authorController.text.trim(),
-          takeaways: _takeawaysController.text.trim().isEmpty ? null : _takeawaysController.text.trim(),
-          status: _status,
-          rating: _rating,
-          isFavorite: _isFavorite,
-        );
-      }
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+
+    final controller = ref.read(bookControllerProvider.notifier);
+    final ok = _isEditing
+        ? await controller.updateBook(
+            id: widget.book!.id,
+            name: _nameController.text.trim(),
+            author: _orNull(_authorController),
+            takeaways: _orNull(_takeawaysController),
+            status: _status,
+            rating: _rating?.toDouble(),
+            isFavorite: _isFavorite,
+          )
+        : await controller.createBook(
+            name: _nameController.text.trim(),
+            author: _orNull(_authorController),
+            takeaways: _orNull(_takeawaysController),
+            status: _status,
+            rating: _rating?.toDouble(),
+            isFavorite: _isFavorite,
+          );
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (ok) Navigator.pop(context);
   }
 
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Remove Book?'),
-        content: const Text('Are you sure you want to delete this book from your library?'),
+        title: const Text(AppStrings.deleteBookTitle),
+        content: const Text(AppStrings.deleteBookMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text(AppStrings.delete),
           ),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
 
-    if (confirmed == true) {
-      setState(() => _isSubmitting = true);
-      try {
-        await ref.read(bookControllerProvider.notifier).deleteBook(widget.book!.id);
-        if (mounted) Navigator.pop(context);
-      } finally {
-        if (mounted) setState(() => _isSubmitting = false);
-      }
-    }
+    setState(() => _isSubmitting = true);
+    final ok = await ref.read(bookControllerProvider.notifier).deleteBook(widget.book!.id);
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (ok) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
-        top: AppSpacing.lg,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
       ),
       child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(widget.book == null ? 'Add New Book' : 'Edit Book Details', style: theme.textTheme.titleLarge),
-                  if (widget.book != null)
-                    IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _delete),
-                ],
-              ),
-              AppSpacing.gapLg,
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Book Title', prefixIcon: Icon(Icons.book)),
-                validator: (v) => v?.isEmpty ?? true ? 'Title is required' : null,
-              ),
-              AppSpacing.gapMd,
-              TextFormField(
-                controller: _authorController,
-                decoration: const InputDecoration(labelText: 'Author (optional)', prefixIcon: Icon(Icons.person_outline)),
-              ),
-              AppSpacing.gapMd,
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _status,
-                      decoration: const InputDecoration(labelText: 'Status'),
-                      items: const [
-                        DropdownMenuItem(value: 'reading', child: Text('📖 Reading')),
-                        DropdownMenuItem(value: 'completed', child: Text('✅ Completed')),
-                      ],
-                      onChanged: (v) => setState(() => _status = v!),
-                    ),
-                  ),
-                  AppSpacing.gapMd,
-                   Expanded(
-                    child: DropdownButtonFormField<double?>(
-                      value: _rating,
-                      decoration: const InputDecoration(labelText: 'Rating'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('No Rating')),
-                        ...[1, 2, 3, 4, 5].map((e) => DropdownMenuItem(value: e.toDouble(), child: Text('⭐ $e'))),
-                      ],
-                      onChanged: (v) => setState(() => _rating = v),
-                    ),
-                  ),
-                ],
-              ),
-              AppSpacing.gapMd,
-
-              TextFormField(
-                controller: _takeawaysController,
-                decoration: const InputDecoration(
-                  labelText: 'Key Takeaways',
-                  alignLabelWithHint: true,
-                  border: OutlineInputBorder(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(_isEditing ? AppStrings.editBook : AppStrings.addBook, style: theme.textTheme.titleLarge),
                 ),
-                maxLines: 4,
+                if (_isEditing)
+                  IconButton(
+                    tooltip: AppStrings.delete,
+                    onPressed: _isSubmitting ? null : _delete,
+                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+                  ),
+              ],
+            ),
+            AppSpacing.gapMd,
+            TextFormField(
+              controller: _nameController,
+              autofocus: !_isEditing,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: AppStrings.bookTitle, prefixIcon: Icon(Icons.menu_book_rounded)),
+              validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.bookTitleRequired : null,
+            ),
+            AppSpacing.gapMd,
+            TextFormField(
+              controller: _authorController,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: AppStrings.authorOptional, prefixIcon: Icon(Icons.person_outline_rounded)),
+            ),
+            AppSpacing.gapLg,
+            Text(AppStrings.status, style: theme.textTheme.labelMedium),
+            AppSpacing.gapSm,
+            PillTabs<String>(
+              values: const ['reading', 'completed'],
+              labelOf: (s) => s == 'completed' ? AppStrings.bookStatusCompleted : AppStrings.bookStatusReading,
+              selected: _status,
+              onChanged: (s) => setState(() => _status = s),
+            ),
+            AppSpacing.gapLg,
+            Text(AppStrings.rating, style: theme.textTheme.labelMedium),
+            StarRatingPicker(value: _rating, allowClear: true, onChanged: (v) => setState(() => _rating = v)),
+            AppSpacing.gapSm,
+            TextFormField(
+              controller: _takeawaysController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: AppStrings.keyTakeaways, alignLabelWithHint: true),
+              minLines: 3,
+              maxLines: 5,
+            ),
+            AppSpacing.gapSm,
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(AppStrings.markFavorite),
+              secondary: Icon(
+                _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                color: _isFavorite ? AppColors.error : theme.colorScheme.onSurfaceVariant,
               ),
-              AppSpacing.gapMd,
-
-              SwitchListTile.adaptive(
-                title: const Text('Mark as Favorite'),
-                value: _isFavorite,
-                onChanged: (v) => setState(() => _isFavorite = v),
-                secondary: const Icon(Icons.favorite, color: Colors.red),
-              ),
-
-              AppSpacing.gapLg,
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting ? const CircularProgressIndicator() : Text(widget.book == null ? 'Add to Library' : 'Update Details'),
-              ),
-            ],
-          ),
+              value: _isFavorite,
+              onChanged: (v) => setState(() => _isFavorite = v),
+            ),
+            AppSpacing.gapMd,
+            FilledButton(
+              onPressed: _isSubmitting ? null : _submit,
+              child: _isSubmitting
+                  ? const SizedBox.square(dimension: AppSpacing.lg - 4, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(_isEditing ? AppStrings.saveChanges : AppStrings.addToLibrary),
+            ),
+          ],
         ),
       ),
     );

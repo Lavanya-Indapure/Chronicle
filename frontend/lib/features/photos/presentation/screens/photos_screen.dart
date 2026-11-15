@@ -2,49 +2,100 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_constants.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/storage_image.dart';
+import 'package:chronicle/features/photos/domain/models/photo.dart';
 import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
 import 'package:chronicle/features/photos/presentation/widgets/add_photo_sheet.dart';
-import 'package:chronicle/features/photos/domain/models/photo.dart';
 
+/// Photo grid grouped by month. Tap a photo to view it full screen (with
+/// caption, date and delete); long-press to delete from the grid.
 class PhotosScreen extends ConsumerWidget {
   const PhotosScreen({super.key});
+
+  static const int _columns = 3;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(photoControllerProvider);
+    final controller = ref.read(photoControllerProvider.notifier);
+    final theme = Theme.of(context);
+    final hasAny = state.photos.isNotEmpty;
+
+    ref.listen(photoControllerProvider.select((s) => s.errorMessage), (prev, next) {
+      if (next != null && next != prev) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next)));
+      }
+    });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Photo Gallery'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(photoControllerProvider.notifier).loadPhotos(),
-          ),
-        ],
-      ),
-      body: state.isLoading && state.photos.isEmpty
+      appBar: AppBar(title: const Text(AppStrings.photosLabel)),
+      body: state.isLoading && !hasAny
           ? const Center(child: CircularProgressIndicator())
-          : state.photos.isEmpty
-              ? _EmptyGallery()
-              : GridView.builder(
-                  padding: const EdgeInsets.all(AppSpacing.sm),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: AppSpacing.sm,
-                    mainAxisSpacing: AppSpacing.sm,
+          : !hasAny
+              ? EmptyState(
+                  icon: Icons.photo_library_outlined,
+                  title: AppStrings.noPhotosTitle,
+                  message: AppStrings.noPhotosMessage,
+                  actionLabel: AppStrings.addFirstPhoto,
+                  onAction: () => _showAddPhoto(context),
+                )
+              : RefreshIndicator(
+                  onRefresh: controller.loadPhotos,
+                  child: CustomScrollView(
+                    slivers: [
+                      for (final MapEntry(key: month, value: photos) in state.photosByMonth.entries) ...[
+                        SliverPadding(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md, AppSpacing.gutter, AppSpacing.sm),
+                          sliver: SliverToBoxAdapter(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    AppFormatters.monthYear(month),
+                                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                Text(
+                                  '${photos.length} ${photos.length == 1 ? AppStrings.photoSingular : AppStrings.photoPlural}',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SliverPadding(
+                          padding: AppSpacing.paddingGutter,
+                          sliver: SliverGrid.builder(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: _columns,
+                              crossAxisSpacing: AppSpacing.sm,
+                              mainAxisSpacing: AppSpacing.sm,
+                            ),
+                            itemCount: photos.length,
+                            itemBuilder: (context, index) => _PhotoTile(
+                              photo: photos[index],
+                              onOpen: () => _openViewer(context, photos[index]),
+                              onDelete: () => _confirmAndDelete(context, ref, photos[index]),
+                            ),
+                          ),
+                        ),
+                      ],
+                      // Keeps the last row clear of the FAB.
+                      const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.xxxl + AppSpacing.xl)),
+                    ],
                   ),
-                  itemCount: state.photos.length,
-                  itemBuilder: (context, index) {
-                    final photo = state.photos[index];
-                    return _PhotoThumbnail(photo: photo);
-                  },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddPhoto(context),
-        child: const Icon(Icons.add_a_photo),
-      ),
+      floatingActionButton: hasAny
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddPhoto(context),
+              label: const Text(AppStrings.addPhoto),
+              icon: const Icon(Icons.add_a_photo_outlined),
+            )
+          : null,
     );
   }
 
@@ -52,142 +103,148 @@ class PhotosScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
       builder: (ctx) => const AddPhotoSheet(),
     );
   }
+
+  void _openViewer(BuildContext context, Photo photo) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => _PhotoViewer(photo: photo)));
+  }
 }
 
-class _PhotoThumbnail extends StatelessWidget {
-  final Photo photo;
+/// Confirms, then deletes. Returns true if the photo was deleted.
+Future<bool> _confirmAndDelete(BuildContext context, WidgetRef ref, Photo photo) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text(AppStrings.deletePhotoTitle),
+      content: const Text(AppStrings.deletePhotoMessage),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          child: const Text(AppStrings.delete),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) return false;
+  return ref.read(photoControllerProvider.notifier).deletePhoto(photo);
+}
 
-  const _PhotoThumbnail({required this.photo});
+class _PhotoTile extends StatelessWidget {
+  final Photo photo;
+  final VoidCallback onOpen;
+  final VoidCallback onDelete;
+
+  const _PhotoTile({required this.photo, required this.onOpen, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showPhotoView(context),
-      onLongPress: () => _showDeleteConfirmation(context),
-      child: Hero(
-        tag: photo.id,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath),
+    return Semantics(
+      button: true,
+      label: photo.caption ?? AppFormatters.dayMonthYear(photo.photoDate),
+      child: GestureDetector(
+        onTap: onOpen,
+        onLongPress: onDelete,
+        child: Hero(
+          tag: photo.id,
+          child: ClipRRect(
+            borderRadius: AppSpacing.borderRadiusLg,
+            child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath),
+          ),
         ),
       ),
     );
   }
-
-  void _showPhotoView(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (ctx) => _PhotoDetailView(photo: photo),
-      ),
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Photo?'),
-        content: const Text('This will permanently remove the photo and its caption.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          Consumer(
-            builder: (context, ref, child) => TextButton(
-              onPressed: () {
-                ref.read(photoControllerProvider.notifier).deletePhoto(photo);
-                Navigator.pop(ctx);
-              },
-              style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-              child: const Text('Delete'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
-class _PhotoDetailView extends StatelessWidget {
+/// Full-screen viewer on a dark backdrop with pinch-zoom, caption, date and
+/// a delete action.
+class _PhotoViewer extends ConsumerWidget {
   final Photo photo;
 
-  const _PhotoDetailView({required this.photo});
+  const _PhotoViewer({required this.photo});
+
+  // The viewer stays dark in both themes, like most photo viewers.
+  static const _backdrop = AppColors.ink;
+  static const _onBackdrop = AppColors.darkTextPrimary;
+  static const _onBackdropMuted = AppColors.darkTextSecondary;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final caption = photo.caption?.trim();
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _backdrop,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        foregroundColor: _onBackdrop,
+        actions: [
+          IconButton(
+            tooltip: AppStrings.delete,
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: () async {
+              final deleted = await _confirmAndDelete(context, ref, photo);
+              if (deleted && context.mounted) Navigator.pop(context);
+            },
+          ),
+          AppSpacing.hGapXs,
+        ],
       ),
-      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          Center(
+          Positioned.fill(
             child: InteractiveViewer(
               child: Hero(
                 tag: photo.id,
-                child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath, fit: BoxFit.contain),
+                child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath, fit: BoxFit.contain, fullScreen: true),
               ),
             ),
           ),
-          if (photo.caption != null && photo.caption!.isNotEmpty)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
-                  ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [_backdrop.withValues(alpha: 0.9), _backdrop.withValues(alpha: 0)],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      photo.caption!,
-                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.white),
-                    ),
-                    AppSpacing.gapXs,
-                    Text(
-                      photo.photoDate.toString().split(' ').first,
-                      style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                    ),
-                  ],
+              ),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.xl, AppSpacing.lg, AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (caption != null && caption.isNotEmpty) ...[
+                        Text(caption, style: theme.textTheme.titleMedium?.copyWith(color: _onBackdrop)),
+                        AppSpacing.gapXs,
+                      ],
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today_outlined, size: AppSpacing.md, color: _onBackdropMuted),
+                          AppSpacing.hGapSm,
+                          Text(
+                            AppFormatters.dayMonthYear(photo.photoDate),
+                            style: theme.textTheme.bodySmall?.copyWith(color: _onBackdropMuted),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyGallery extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.photo_library_outlined, size: 64, color: theme.disabledColor),
-          AppSpacing.gapMd,
-          Text('No photos yet', style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor)),
-          AppSpacing.gapSm,
-          Text('Capture your memories!', style: theme.textTheme.bodyMedium?.copyWith(color: theme.disabledColor)),
+          ),
         ],
       ),
     );

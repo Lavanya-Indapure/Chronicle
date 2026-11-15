@@ -57,6 +57,11 @@ class BookState extends Equatable {
     }).toList();
   }
 
+  /// Number of books with [status] (null = all), for the filter tab labels.
+  int countFor(String? status) => status == null ? books.length : books.where((b) => b.status == status).length;
+
+  bool get hasActiveFilters => searchQuery.isNotEmpty || statusFilter != null || onlyFavorites;
+
   @override
   List<Object?> get props => [isLoading, errorMessage, books, searchQuery, statusFilter, onlyFavorites];
 }
@@ -85,7 +90,7 @@ class BookController extends Notifier<BookState> {
     }
   }
 
-  Future<void> createBook({
+  Future<bool> createBook({
     required String name,
     String? author,
     String? takeaways,
@@ -104,12 +109,14 @@ class BookController extends Notifier<BookState> {
         isFavorite: isFavorite,
       );
       await loadBooks();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
-  Future<void> updateBook({
+  Future<bool> updateBook({
     required String id,
     required String name,
     String? author,
@@ -130,18 +137,22 @@ class BookController extends Notifier<BookState> {
         isFavorite: isFavorite,
       );
       await loadBooks();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
-  Future<void> deleteBook(String id) async {
+  Future<bool> deleteBook(String id) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.deleteBook(id);
       await loadBooks();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 

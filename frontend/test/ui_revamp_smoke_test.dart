@@ -1,27 +1,16 @@
-// Smoke tests for the revamped Dashboard / Expenses screens and the floating
-// nav bar: render them with fake data at phone widths in both themes and fail
-// on any layout overflow or build exception.
-//
-// To also write PNG snapshots for visual review (FONT_DIR is optional and
-// should hold Poppins-{Regular,Medium,SemiBold,Bold}.ttf for real text):
-//   flutter test test/ui_revamp_smoke_test.dart --update-goldens \
-//     --dart-define=CAPTURE=true --dart-define=FONT_DIR=/path/to/fonts
+// Smoke tests for the revamped Dashboard / Expenses / Todos / Vision Board /
+// restaurant screens: render them with fake data at phone widths in both
+// themes and fail on any layout overflow or build exception.
+// Harness + snapshot instructions: test/helpers/ui_test_harness.dart
 
-import 'dart:async';
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:chronicle/core/constants/app_strings.dart';
-import 'package:chronicle/core/providers/supabase_provider.dart';
-import 'package:chronicle/core/theme/app_theme.dart';
+import 'helpers/ui_test_harness.dart';
 import 'package:chronicle/core/utils/formatters.dart';
-import 'package:chronicle/core/widgets/floating_nav_bar.dart';
 import 'package:chronicle/features/dashboard/domain/models/dashboard_models.dart';
 import 'package:chronicle/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:chronicle/features/dashboard/presentation/screens/dashboard_screen.dart';
@@ -46,8 +35,6 @@ import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
 import 'package:chronicle/features/vision_board/presentation/screens/vision_board_screen.dart';
 
-const _capture = bool.fromEnvironment('CAPTURE');
-const _fontDir = String.fromEnvironment('FONT_DIR');
 
 // ── Fake data ──
 
@@ -299,29 +286,20 @@ class _FakeExpenseController extends ExpenseController {
 
 // ── Harness ──
 
-const _navItems = [
-  FloatingNavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: AppStrings.dashboardLabel),
-  FloatingNavItem(icon: Icons.check_circle_outline, selectedIcon: Icons.check_circle, label: AppStrings.todosLabel),
-  FloatingNavItem(icon: Icons.bar_chart_rounded, selectedIcon: Icons.bar_chart_rounded, label: AppStrings.expensesLabel),
-  FloatingNavItem(icon: Icons.favorite_outline, selectedIcon: Icons.favorite, label: AppStrings.healthLabel),
-  FloatingNavItem(icon: Icons.grid_view_outlined, selectedIcon: Icons.grid_view_rounded, label: AppStrings.moreLabel),
-];
-
 Future<void> _pumpScreen(
   WidgetTester tester, {
   required Widget screen,
   required int navIndex,
   required ThemeData theme,
   required Size size,
-}) async {
-  tester.view.devicePixelRatio = 2;
-  tester.view.physicalSize = size * 2;
-  addTearDown(tester.view.reset);
-
-  await tester.pumpWidget(
-    ProviderScope(
+}) =>
+    pumpAppScreen(
+      tester,
+      screen: screen,
+      navIndex: navIndex,
+      theme: theme,
+      size: size,
       overrides: [
-        currentUserFirstNameProvider.overrideWithValue('Alex'),
         dashboardControllerProvider.overrideWith(_FakeDashboardController.new),
         expenseControllerProvider.overrideWith(_FakeExpenseController.new),
         todoControllerProvider.overrideWith(_FakeTodoController.new),
@@ -331,63 +309,12 @@ Future<void> _pumpScreen(
         // Simulate storage refusing the file (e.g. missing read permission).
         signedUrlProvider.overrideWith((ref, object) => Future<String>.error(Exception('Object not found'))),
       ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: theme,
-        home: Scaffold(
-          body: screen,
-          bottomNavigationBar: FloatingNavBar(
-            items: _navItems,
-            selectedIndex: navIndex,
-            onSelected: (_) {},
-            onAction: () {},
-            actionLabel: AppStrings.quickAdd,
-          ),
-        ),
-      ),
-    ),
-  );
-  // Let entry animations (rings, donut) finish.
-  await tester.pump(const Duration(seconds: 1));
-}
-
-/// Loads real fonts so captured snapshots show readable text and icons.
-/// [fontDir] must contain Poppins-{Regular,Medium,SemiBold,Bold}.ttf.
-Future<void> _loadSnapshotFonts(String fontDir) async {
-  Future<ByteData> read(String path) async => ByteData.sublistView(await File(path).readAsBytes());
-
-  // google_fonts asks for one family per weight, e.g. "Poppins_600".
-  const weights = {'regular': 'Regular', '500': 'Medium', '600': 'SemiBold', '700': 'Bold'};
-  for (final MapEntry(key: variant, value: file) in weights.entries) {
-    await (FontLoader('Poppins_$variant')..addFont(read('$fontDir/Poppins-$file.ttf'))).load();
-  }
-
-  final flutterRoot = Platform.environment['FLUTTER_ROOT'];
-  if (flutterRoot != null) {
-    final icons = FontLoader('MaterialIcons')
-      ..addFont(read('$flutterRoot/bin/cache/artifacts/material_fonts/materialicons-regular.otf'));
-    await icons.load();
-  }
-}
+    );
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
-
-  // google_fonts can't find Poppins in tests and reports that as an async
-  // error; build the themes in a zone that swallows those so tests don't fail.
-  late final ThemeData dark;
-  late final ThemeData light;
-  runZonedGuarded(() {
-    dark = AppTheme.dark;
-    light = AppTheme.light;
-  }, (_, _) {});
-
-  if (_capture && _fontDir.isNotEmpty) {
-    setUpAll(() => _loadSnapshotFonts(_fontDir));
-  }
-
-  final themes = {'dark': dark, 'light': light};
+  final testThemes = setUpUiTests();
+  final dark = testThemes.dark;
+  final themes = testThemes.all;
   final screens = <String, (Widget, int)>{
     'dashboard': (const DashboardScreen(), 0),
     'expenses': (const ExpensesScreen(), 2),
@@ -403,7 +330,7 @@ void main() {
         testWidgets('$screenName renders without overflow ($themeName, ${width.toInt()}dp)', (tester) async {
           await _pumpScreen(tester, screen: screen, navIndex: navIndex, theme: theme, size: Size(width, height));
           expect(tester.takeException(), isNull);
-          if (_capture && width == widths.last) {
+          if (captureSnapshots && width == widths.last) {
             await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/${screenName}_$themeName.png'));
           }
         });
@@ -432,7 +359,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('Shopping'), findsWidgets);
-    if (_capture) {
+    if (captureSnapshots) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_all_categories_dark.png'));
     }
   });
@@ -460,7 +387,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip(AppStrings.previousYear));
     await tester.pumpAndSettle();
-    if (_capture) {
+    if (captureSnapshots) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/month_picker_dark.png'));
     }
     await tester.tap(find.text(AppFormatters.shortMonth(march)));
@@ -481,7 +408,7 @@ void main() {
     expect(find.text(AppStrings.edit), findsOneWidget);
     expect(find.text(AppStrings.delete), findsOneWidget);
     expect(tester.takeException(), isNull);
-    if (_capture) {
+    if (captureSnapshots) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expense_details_dark.png'));
     }
   });
@@ -490,12 +417,13 @@ void main() {
     // Small phone with the on-screen keyboard taking 300dp.
     await _pumpScreen(tester, screen: const LearningsScreen(), navIndex: 4, theme: dark, size: const Size(360, 640));
     tester.view.viewInsets = FakeViewPadding(bottom: 300 * tester.view.devicePixelRatio);
-    await tester.tap(find.byIcon(Icons.add).first);
+    // Empty list → the empty state's "add first" button opens the sheet.
+    await tester.tap(find.text(AppStrings.learningsAddFirst));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(TextField).at(1)); // 0 = screen search box, 1 = first sheet field
+    await tester.tap(find.descendant(of: find.byType(BottomSheet), matching: find.byType(TextField)).first);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-    if (_capture) {
+    if (captureSnapshots) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/sheet_keyboard_dark.png'));
     }
   });
@@ -512,7 +440,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('1 ${AppStrings.visitSingular}'), findsOneWidget);
     expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
-    if (_capture) {
+    if (captureSnapshots) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/restaurant_details_dark.png'));
     }
   });
@@ -526,7 +454,7 @@ void main() {
         await _pumpScreen(tester, screen: const VisionBoardScreen(), navIndex: 4, theme: theme, size: const Size(360, 800));
         expect(tester.takeException(), isNull);
         expect(find.text(AppStrings.addFirstGoal), findsOneWidget);
-        if (_capture) {
+        if (captureSnapshots) {
           await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/vision_empty_$themeName.png'));
         }
       });
@@ -541,7 +469,7 @@ void main() {
         expect(tester.takeException(), isNull);
         // The selected "All" pill must be visible text, not blank.
         expect(find.text(AppStrings.statusAll), findsOneWidget);
-        if (_capture) {
+        if (captureSnapshots) {
           await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/vision_goals_$themeName.png'));
         }
       });

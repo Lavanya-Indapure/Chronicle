@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/providers/signed_url_provider.dart';
 
 /// Image stored in Supabase Storage, loaded through a signed URL so it works
@@ -12,6 +13,10 @@ class StorageImage extends ConsumerWidget {
   final double? width;
   final double? height;
 
+  /// Full-screen style: transparent placeholder with a spinner while loading
+  /// (for viewers on a dark backdrop) instead of a filled tile.
+  final bool fullScreen;
+
   const StorageImage({
     super.key,
     required this.bucket,
@@ -19,23 +24,25 @@ class StorageImage extends ConsumerWidget {
     this.fit = BoxFit.cover,
     this.width,
     this.height,
+    this.fullScreen = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final url = ref.watch(signedUrlProvider((bucket: bucket, path: path)));
+    Widget placeholder({bool broken = false}) =>
+        _Placeholder(width: width, height: height, broken: broken, fullScreen: fullScreen);
 
     return url.when(
-      loading: () => _Placeholder(width: width, height: height),
-      error: (_, _) => _Placeholder(width: width, height: height, broken: true),
+      loading: placeholder,
+      error: (_, _) => placeholder(broken: true),
       data: (url) => Image.network(
         url,
         fit: fit,
         width: width,
         height: height,
-        loadingBuilder: (context, child, progress) =>
-            progress == null ? child : _Placeholder(width: width, height: height),
-        errorBuilder: (context, _, _) => _Placeholder(width: width, height: height, broken: true),
+        loadingBuilder: (context, child, progress) => progress == null ? child : placeholder(),
+        errorBuilder: (context, _, _) => placeholder(broken: true),
       ),
     );
   }
@@ -45,8 +52,9 @@ class _Placeholder extends StatelessWidget {
   final double? width;
   final double? height;
   final bool broken;
+  final bool fullScreen;
 
-  const _Placeholder({this.width, this.height, this.broken = false});
+  const _Placeholder({this.width, this.height, this.broken = false, this.fullScreen = false});
 
   @override
   Widget build(BuildContext context) {
@@ -54,9 +62,11 @@ class _Placeholder extends StatelessWidget {
     return Container(
       width: width,
       height: height,
-      color: colors.surfaceContainerHigh,
+      color: fullScreen ? null : colors.surfaceContainerHigh,
       alignment: Alignment.center,
-      child: broken ? Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant) : null,
+      child: broken
+          ? Icon(Icons.broken_image_outlined, color: colors.onSurfaceVariant, size: fullScreen ? AppSpacing.xxl : null)
+          : (fullScreen ? const CircularProgressIndicator() : null),
     );
   }
 }

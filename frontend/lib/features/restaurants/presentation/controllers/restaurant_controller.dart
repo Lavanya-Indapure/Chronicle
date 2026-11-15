@@ -130,7 +130,9 @@ class RestaurantController extends Notifier<RestaurantState> {
     }
   }
 
-  Future<void> createRestaurant({
+  /// Returns false (and sets [RestaurantState.errorMessage]) if saving failed,
+  /// so the sheet can stay open instead of closing as if it worked.
+  Future<bool> createRestaurant({
     required String name,
     required String address,
     required double rating,
@@ -140,7 +142,6 @@ class RestaurantController extends Notifier<RestaurantState> {
     List<File> photos = const [],
     bool isFavorite = false,
   }) async {
-    state = state.copyWith(isLoading: true);
     try {
       await _repository.createRestaurant(
         name: name,
@@ -153,12 +154,15 @@ class RestaurantController extends Notifier<RestaurantState> {
         isFavorite: isFavorite,
       );
       await loadRestaurants();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 
-  Future<void> logRevisit({
+  /// Returns false (and sets [RestaurantState.errorMessage]) if saving failed.
+  Future<bool> logRevisit({
     required String restaurantId,
     required double rating,
     double? billAmount,
@@ -166,7 +170,6 @@ class RestaurantController extends Notifier<RestaurantState> {
     String? notes,
     List<File> photos = const [],
   }) async {
-    state = state.copyWith(isLoading: true);
     try {
       await _repository.logRevisit(
         restaurantId: restaurantId,
@@ -177,8 +180,10 @@ class RestaurantController extends Notifier<RestaurantState> {
         photos: photos,
       );
       await loadRestaurants();
+      return true;
     } on AppException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
+      return false;
     }
   }
 

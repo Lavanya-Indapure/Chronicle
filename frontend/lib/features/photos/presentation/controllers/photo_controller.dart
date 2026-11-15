@@ -31,6 +31,17 @@ class PhotoState extends Equatable {
     );
   }
 
+  /// Photos grouped by the month they were taken, newest month (and photo)
+  /// first. Keys are the first day of each month.
+  Map<DateTime, List<Photo>> get photosByMonth {
+    final sorted = [...photos]..sort((a, b) => b.photoDate.compareTo(a.photoDate));
+    final groups = <DateTime, List<Photo>>{};
+    for (final p in sorted) {
+      groups.putIfAbsent(DateTime(p.photoDate.year, p.photoDate.month), () => []).add(p);
+    }
+    return groups;
+  }
+
   @override
   List<Object?> get props => [isLoading, errorMessage, photos];
 }
@@ -76,13 +87,17 @@ class PhotoController extends Notifier<PhotoState> {
     }
   }
 
-  Future<void> deletePhoto(Photo photo) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+  /// Removes the photo from the grid immediately, then deletes it; restores
+  /// it (and sets [PhotoState.errorMessage]) if the delete fails.
+  Future<bool> deletePhoto(Photo photo) async {
+    final previous = state.photos;
+    state = state.copyWith(photos: previous.where((p) => p.id != photo.id).toList());
     try {
       await _repository.deletePhoto(photo);
-      await loadPhotos();
+      return true;
     } on AppException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      state = state.copyWith(photos: previous, errorMessage: e.message);
+      return false;
     }
   }
 }

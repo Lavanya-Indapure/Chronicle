@@ -44,6 +44,12 @@ class _RestaurantDetailsScreenState extends ConsumerState<RestaurantDetailsScree
       (s) => s.restaurants.where((x) => x.id == widget.restaurant.id).firstOrNull,
     )) ?? widget.restaurant;
 
+    ref.listen(restaurantControllerProvider.select((s) => s.errorMessage), (prev, next) {
+      if (next != null && next != prev) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next)));
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: Text(r.name),

@@ -43,7 +43,7 @@ class PlaceController extends Notifier<PlaceState> {
 
   @override
   PlaceState build() {
-    _repository = ref.watch(placeRepositoryProvider) as PlaceRepositoryImpl;
+    _repository = ref.watch(placeRepositoryProvider);
     _loadPlaces();
     return const PlaceState();
   }
@@ -65,9 +65,16 @@ class PlaceController extends Notifier<PlaceState> {
     _loadPlaces();
   }
 
+  /// Removes the entry immediately (a swiped card must leave the list),
+  /// then deletes it; restores it if the delete fails.
   Future<void> deletePlace(String id) async {
-    await _repository.deletePlace(id);
-    _loadPlaces();
+    final previous = state.places;
+    state = state.copyWith(places: previous.where((p) => p.id != id).toList());
+    try {
+      await _repository.deletePlace(id);
+    } catch (_) {
+      state = state.copyWith(places: previous);
+    }
   }
 }
 

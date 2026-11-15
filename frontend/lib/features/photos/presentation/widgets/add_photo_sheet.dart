@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
-import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
 
+/// Pick a photo (gallery or camera), add an optional caption and date, upload.
 class AddPhotoSheet extends ConsumerStatefulWidget {
   const AddPhotoSheet({super.key});
 
@@ -14,6 +17,9 @@ class AddPhotoSheet extends ConsumerStatefulWidget {
 }
 
 class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
+  /// Height of the image preview / picker area.
+  static const double _previewHeight = 200;
+
   final _captionController = TextEditingController();
   File? _imageFile;
   DateTime _selectedDate = DateTime.now();
@@ -21,22 +27,31 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
 
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void dispose() {
+    _captionController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 70, // Compressing for better storage usage
-      );
-      if (pickedFile != null) {
-        setState(() => _imageFile = File(pickedFile.path));
-      }
-    } catch (e) {
+      final pickedFile = await _picker.pickImage(source: source, imageQuality: 70);
+      if (pickedFile != null) setState(() => _imageFile = File(pickedFile.path));
+    } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.pickImageFailed)));
       }
     }
+  }
+
+  Future<void> _pickDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (date != null) setState(() => _selectedDate = date);
   }
 
   Future<void> _submit() async {
@@ -44,139 +59,144 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
 
     setState(() => _isUploading = true);
     final success = await ref.read(photoControllerProvider.notifier).uploadPhoto(
-      file: _imageFile!,
-      caption: _captionController.text.trim().isEmpty ? null : _captionController.text.trim(),
-      date: _selectedDate,
-    );
+          file: _imageFile!,
+          caption: _captionController.text.trim().isEmpty ? null : _captionController.text.trim(),
+          date: _selectedDate,
+        );
+    if (!mounted) return;
 
-    if (mounted) {
-      if (success) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photo uploaded successfully!')),
-        );
-      } else {
-        setState(() => _isUploading = false);
-        final error = ref.read(photoControllerProvider).errorMessage;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error ?? 'Failed to upload photo')),
-        );
-      }
+    final messenger = ScaffoldMessenger.of(context);
+    if (success) {
+      Navigator.pop(context);
+      messenger.showSnackBar(const SnackBar(content: Text(AppStrings.photoUploaded)));
+    } else {
+      setState(() => _isUploading = false);
+      final error = ref.read(photoControllerProvider).errorMessage;
+      messenger.showSnackBar(SnackBar(content: Text(error ?? AppStrings.photoUploadFailed)));
     }
+  }
+
+  void _showSourceOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text(AppStrings.gallery),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera_outlined),
+                title: const Text(AppStrings.camera),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
-        top: AppSpacing.lg,
+        top: AppSpacing.sm,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Add New Memory', style: theme.textTheme.titleLarge),
+          Text(AppStrings.addNewMemory, style: theme.textTheme.titleLarge),
           AppSpacing.gapLg,
 
-          // Image Preview/Picker
-          GestureDetector(
-            onTap: () => _showPickerOptions(),
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
+          // Preview / picker
+          Material(
+            color: colors.surfaceContainerHigh,
+            borderRadius: AppSpacing.borderRadiusXl,
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: _showSourceOptions,
+              child: SizedBox(
+                height: _previewHeight,
+                child: _imageFile != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.file(_imageFile!, fit: BoxFit.cover),
+                          Positioned(
+                            right: AppSpacing.sm,
+                            bottom: AppSpacing.sm,
+                            child: Chip(
+                              avatar: const Icon(Icons.swap_horiz_rounded),
+                              label: const Text(AppStrings.changePhoto),
+                              backgroundColor: colors.surface,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_outlined, size: AppSpacing.xxl, color: colors.primary),
+                          AppSpacing.gapSm,
+                          Text(AppStrings.tapToSelectImage, style: theme.textTheme.bodyMedium),
+                        ],
+                      ),
               ),
-              child: _imageFile != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-                      child: Image.file(_imageFile!, fit: BoxFit.cover),
-                    )
-                  : Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_a_photo_outlined, size: 48, color: theme.colorScheme.primary),
-                        AppSpacing.gapSm,
-                        Text('Tap to select image', style: theme.textTheme.bodyMedium),
-                      ],
-                    ),
             ),
           ),
           AppSpacing.gapMd,
 
-          // Caption
           TextField(
             controller: _captionController,
-            decoration: const InputDecoration(
-              labelText: 'Caption (optional)',
-              prefixIcon: Icon(Icons.closed_caption_outlined),
-            ),
             maxLines: 2,
             textInputAction: TextInputAction.done,
+            decoration: const InputDecoration(
+              labelText: AppStrings.captionOptional,
+              prefixIcon: Icon(Icons.short_text_rounded),
+            ),
           ),
           AppSpacing.gapMd,
 
-          // Date Picker
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today_outlined),
-            title: const Text('Photo Date'),
-            subtitle: Text(_selectedDate.toString().split(' ').first),
-            onTap: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now(),
-              );
-              if (date != null) setState(() => _selectedDate = date);
-            },
-            trailing: const Icon(Icons.chevron_right),
+          // Date
+          Material(
+            color: colors.surfaceContainerHigh,
+            borderRadius: AppSpacing.borderRadiusLg,
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              onTap: _pickDate,
+              leading: const Icon(Icons.calendar_today_outlined),
+              title: const Text(AppStrings.photoDate),
+              trailing: Text(AppFormatters.dayMonthYear(_selectedDate), style: theme.textTheme.titleSmall),
+            ),
           ),
           AppSpacing.gapLg,
 
-          // Upload Button
           FilledButton(
             onPressed: _imageFile == null || _isUploading ? null : _submit,
             child: _isUploading
-                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Capture Memory'),
+                ? const SizedBox.square(dimension: AppSpacing.md + 4, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Text(AppStrings.saveMemory),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showPickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () {
-                _pickImage(ImageSource.gallery);
-                Navigator.pop(ctx);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Camera'),
-              onTap: () {
-                _pickImage(ImageSource.camera);
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

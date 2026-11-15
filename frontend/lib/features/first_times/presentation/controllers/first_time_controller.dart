@@ -48,9 +48,16 @@ class FirstTimeController extends Notifier<FirstTimeState> {
     _loadFirstTimes();
   }
 
+  /// Removes the entry immediately (a swiped card must leave the list),
+  /// then deletes it; restores it if the delete fails.
   Future<void> deleteExperience(String id) async {
-    await _repository.deleteFirstTime(id);
-    _loadFirstTimes();
+    final previous = state.experiences;
+    state = state.copyWith(experiences: previous.where((e) => e.id != id).toList());
+    try {
+      await _repository.deleteFirstTime(id);
+    } catch (_) {
+      state = state.copyWith(experiences: previous);
+    }
   }
 }
 

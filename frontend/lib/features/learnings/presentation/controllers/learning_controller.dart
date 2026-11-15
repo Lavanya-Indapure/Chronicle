@@ -43,7 +43,7 @@ class LearningController extends Notifier<LearningState> {
 
   @override
   LearningState build() {
-    _repository = ref.watch(learningRepositoryProvider) as LearningRepositoryImpl;
+    _repository = ref.watch(learningRepositoryProvider);
     _loadLearnings();
     return const LearningState();
   }
@@ -65,9 +65,16 @@ class LearningController extends Notifier<LearningState> {
     _loadLearnings();
   }
 
+  /// Removes the entry immediately (a swiped card must leave the list),
+  /// then deletes it; restores it if the delete fails.
   Future<void> deleteLearning(String id) async {
-    await _repository.deleteLearning(id);
-    _loadLearnings();
+    final previous = state.learnings;
+    state = state.copyWith(learnings: previous.where((l) => l.id != id).toList());
+    try {
+      await _repository.deleteLearning(id);
+    } catch (_) {
+      state = state.copyWith(learnings: previous);
+    }
   }
 }
 

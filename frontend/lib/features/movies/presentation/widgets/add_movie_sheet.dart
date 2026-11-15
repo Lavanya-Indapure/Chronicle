@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
-import 'package:chronicle/features/movies/presentation/controllers/movie_controller.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/pill_tabs.dart';
+import 'package:chronicle/core/widgets/star_rating.dart';
 import 'package:chronicle/features/movies/domain/models/movie.dart';
+import 'package:chronicle/features/movies/presentation/controllers/movie_controller.dart';
+import 'package:chronicle/features/movies/presentation/widgets/movie_platform.dart';
 
+/// Log a movie, or edit/delete [movie] when given.
 class AddMovieSheet extends ConsumerStatefulWidget {
   final Movie? movie;
 
@@ -16,193 +23,186 @@ class AddMovieSheet extends ConsumerStatefulWidget {
 
 class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _costController = TextEditingController();
-  final _commentsController = TextEditingController();
-  final _takeawaysController = TextEditingController();
-  
-  DateTime _selectedDate = DateTime.now();
-  String _platform = 'mobile-laptop';
-  int _rating = 3;
+  late final _nameController = TextEditingController(text: widget.movie?.name);
+  late final _costController = TextEditingController(text: _formatCost(widget.movie?.cost));
+  late final _commentsController = TextEditingController(text: widget.movie?.comments);
+  late final _takeawaysController = TextEditingController(text: widget.movie?.takeaways);
+
+  late DateTime _watchDate = widget.movie?.watchDate ?? DateTime.now();
+  late String _platform = widget.movie?.platform ?? MoviePlatform.digital;
+  late int _rating = widget.movie?.rating ?? 3;
   bool _isSubmitting = false;
 
+  bool get _isEditing => widget.movie != null;
+  bool get _isTheatre => _platform == MoviePlatform.theatre;
+
+  /// 250.0 → "250", 249.5 → "249.5"
+  static String? _formatCost(double? v) =>
+      v == null ? null : (v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString());
+
+  static String? _orNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
+
   @override
-  void initState() {
-    super.initState();
-    if (widget.movie != null) {
-      _nameController.text = widget.movie!.name;
-      _selectedDate = widget.movie!.watchDate;
-      _platform = widget.movie!.platform;
-      _costController.text = widget.movie!.cost?.toString() ?? '';
-      _rating = widget.movie!.rating;
-      _commentsController.text = widget.movie!.comments ?? '';
-      _takeawaysController.text = widget.movie!.takeaways ?? '';
-    }
+  void dispose() {
+    _nameController.dispose();
+    _costController.dispose();
+    _commentsController.dispose();
+    _takeawaysController.dispose();
+    super.dispose();
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _watchDate,
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked != null) setState(() => _watchDate = picked);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSubmitting = true);
-    try {
-      final movie = Movie(
-        id: widget.movie?.id ?? '',
-        userId: widget.movie?.userId ?? '',
-        name: _nameController.text.trim(),
-        watchDate: _selectedDate,
-        platform: _platform,
-        rating: _rating,
-        cost: _platform == 'theatre' ? double.tryParse(_costController.text) : null,
-        comments: _commentsController.text.trim().isEmpty ? null : _commentsController.text.trim(),
-        takeaways: _takeawaysController.text.trim().isEmpty ? null : _takeawaysController.text.trim(),
-      );
 
-      if (widget.movie == null) {
-        await ref.read(movieControllerProvider.notifier).createMovie(movie);
-      } else {
-        await ref.read(movieControllerProvider.notifier).updateMovie(widget.movie!.id, movie);
-      }
-      if (mounted) Navigator.pop(context);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    final movie = Movie(
+      id: widget.movie?.id ?? '',
+      userId: widget.movie?.userId ?? '',
+      name: _nameController.text.trim(),
+      watchDate: _watchDate,
+      platform: _platform,
+      rating: _rating,
+      cost: _isTheatre ? double.tryParse(_costController.text.trim()) : null,
+      comments: _orNull(_commentsController),
+      takeaways: _orNull(_takeawaysController),
+    );
+    final controller = ref.read(movieControllerProvider.notifier);
+    final ok = _isEditing ? await controller.updateMovie(widget.movie!.id, movie) : await controller.createMovie(movie);
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (ok) Navigator.pop(context);
   }
 
   Future<void> _delete() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Log?'),
-        content: const Text('Are you sure you want to remove this movie entry?'),
+        title: const Text(AppStrings.deleteMovieTitle),
+        content: const Text(AppStrings.deleteMovieMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text(AppStrings.cancel)),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text(AppStrings.delete),
           ),
         ],
       ),
     );
+    if (confirmed != true || !mounted) return;
 
-    if (confirmed == true) {
-      setState(() => _isSubmitting = true);
-      try {
-        await ref.read(movieControllerProvider.notifier).deleteMovie(widget.movie!.id);
-        if (mounted) Navigator.pop(context);
-      } finally {
-        if (mounted) setState(() => _isSubmitting = false);
-      }
-    }
+    setState(() => _isSubmitting = true);
+    final ok = await ref.read(movieControllerProvider.notifier).deleteMovie(widget.movie!.id);
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+    if (ok) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
-        top: AppSpacing.lg,
         bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
       ),
       child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(widget.movie == null ? 'Log Movie' : 'Edit Movie Log', style: theme.textTheme.titleLarge),
-                  if (widget.movie != null)
-                    IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: _delete),
-                ],
-              ),
-              AppSpacing.gapLg,
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Movie Name', prefixIcon: Icon(Icons.movie_outlined)),
-                validator: (v) => v?.isEmpty ?? true ? 'Name is required' : null,
-              ),
-              AppSpacing.gapMd,
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _selectDate,
-                      icon: const Icon(Icons.calendar_today, size: 18),
-                      label: Text(DateFormat('MMM dd, yyyy').format(_selectedDate)),
-                    ),
-                  ),
-                  AppSpacing.gapMd,
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: _platform,
-                      decoration: const InputDecoration(labelText: 'Platform'),
-                      items: const [
-                        DropdownMenuItem(value: 'theatre', child: Text('🎭 Theatre')),
-                        DropdownMenuItem(value: 'mobile-laptop', child: Text('📱 Digital')),
-                      ],
-                      onChanged: (v) => setState(() => _platform = v!),
-                    ),
-                  ),
-                ],
-              ),
-              if (_platform == 'theatre') ...[
-                AppSpacing.gapMd,
-                TextFormField(
-                  controller: _costController,
-                  decoration: const InputDecoration(labelText: 'Cost (₹)', prefixIcon: Icon(Icons.currency_rupee)),
-                  keyboardType: TextInputType.number,
-                  validator: (v) => _platform == 'theatre' && (v?.isEmpty ?? true) ? 'Cost is required for theatre' : null,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(_isEditing ? AppStrings.editMovie : AppStrings.logMovie, style: theme.textTheme.titleLarge),
                 ),
-              ],
-              AppSpacing.gapLg,
-              Text('Rating', style: theme.textTheme.labelMedium),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) => IconButton(
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color: index < _rating ? Colors.amber : Colors.grey,
-                    size: 32,
+                if (_isEditing)
+                  IconButton(
+                    tooltip: AppStrings.delete,
+                    onPressed: _isSubmitting ? null : _delete,
+                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
                   ),
-                  onPressed: () => setState(() => _rating = index + 1),
-                )),
+              ],
+            ),
+            AppSpacing.gapMd,
+            TextFormField(
+              controller: _nameController,
+              autofocus: !_isEditing,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(labelText: AppStrings.movieName, prefixIcon: Icon(Icons.movie_outlined)),
+              validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.movieNameRequired : null,
+            ),
+            AppSpacing.gapMd,
+            Material(
+              color: theme.colorScheme.surfaceContainerHigh,
+              borderRadius: AppSpacing.borderRadiusLg,
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                onTap: _pickDate,
+                leading: const Icon(Icons.calendar_today_outlined),
+                title: const Text(AppStrings.watchedOn),
+                trailing: Text(AppFormatters.dayMonthYear(_watchDate), style: theme.textTheme.titleSmall),
               ),
+            ),
+            AppSpacing.gapLg,
+            Text(AppStrings.platform, style: theme.textTheme.labelMedium),
+            AppSpacing.gapSm,
+            PillTabs<String>(
+              values: const [MoviePlatform.digital, MoviePlatform.theatre],
+              labelOf: MoviePlatform.label,
+              selected: _platform,
+              onChanged: (p) => setState(() => _platform = p),
+            ),
+            if (_isTheatre) ...[
               AppSpacing.gapMd,
               TextFormField(
-                controller: _commentsController,
-                decoration: const InputDecoration(labelText: 'Comments (Optional)', border: OutlineInputBorder()),
-                maxLines: 2,
-              ),
-              AppSpacing.gapMd,
-              TextFormField(
-                controller: _takeawaysController,
-                decoration: const InputDecoration(labelText: 'Takeaways (Optional)', border: OutlineInputBorder()),
-                maxLines: 2,
-              ),
-              AppSpacing.gapLg,
-              FilledButton(
-                onPressed: _isSubmitting ? null : _submit,
-                child: _isSubmitting ? const CircularProgressIndicator() : Text(widget.movie == null ? 'Save Log' : 'Update Log'),
+                controller: _costController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: AppStrings.ticketCost, prefixIcon: Icon(Icons.currency_rupee_rounded)),
+                validator: (v) => _isTheatre && double.tryParse(v?.trim() ?? '') == null ? AppStrings.ticketCostRequired : null,
               ),
             ],
-          ),
+            AppSpacing.gapLg,
+            Text(AppStrings.rating, style: theme.textTheme.labelMedium),
+            StarRatingPicker(value: _rating, onChanged: (v) => setState(() => _rating = v ?? _rating)),
+            AppSpacing.gapSm,
+            TextFormField(
+              controller: _commentsController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: AppStrings.commentsOptional, alignLabelWithHint: true),
+              minLines: 2,
+              maxLines: 4,
+            ),
+            AppSpacing.gapMd,
+            TextFormField(
+              controller: _takeawaysController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: AppStrings.takeawaysOptional, alignLabelWithHint: true),
+              minLines: 2,
+              maxLines: 4,
+            ),
+            AppSpacing.gapLg,
+            FilledButton(
+              onPressed: _isSubmitting ? null : _submit,
+              child: _isSubmitting
+                  ? const SizedBox.square(dimension: AppSpacing.lg - 4, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(_isEditing ? AppStrings.saveChanges : AppStrings.logMovie),
+            ),
+          ],
         ),
       ),
     );
