@@ -30,6 +30,10 @@ import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 import 'package:chronicle/features/expenses/presentation/screens/expenses_screen.dart';
+import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
+import 'package:chronicle/features/todos/domain/models/todo_template.dart';
+import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
+import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
 
 const _capture = bool.fromEnvironment('CAPTURE');
 const _fontDir = String.fromEnvironment('FONT_DIR');
@@ -141,6 +145,50 @@ class _FakeDashboardController extends DashboardController {
   DashboardState build() => _dashboardState;
 }
 
+TodoInstance _todo(String id, String title, {bool done = false, bool carried = false, String? note}) => TodoInstance(
+      id: id,
+      templateId: 'tpl-$id',
+      userId: 'u',
+      title: title,
+      description: note,
+      scheduledDate: _daysAgo(0),
+      isCompleted: done,
+      isCarriedForward: carried,
+      createdAt: _daysAgo(0),
+      updatedAt: _daysAgo(0),
+    );
+
+final _todoState = TodoState(
+  groupedTodos: {
+    RecurrenceType.daily: [
+      _todo('1', 'Soak dryfruits', done: true),
+      _todo('2', 'Massage your scalp'),
+      _todo('3', 'Massage your Face', done: true),
+      _todo('4', 'Massage your Feet'),
+      _todo('5', 'Eat 🍌'),
+      _todo('6', 'Eat 2 dates'),
+      _todo('7', '5 mins Sadhguru Morning', note: 'Before breakfast'),
+      _todo('8', '5 Mins Sadhguru Night'),
+      _todo('9', 'Eat dryfruits'),
+    ],
+    RecurrenceType.weekly: [
+      _todo('10', 'Exfoliate Face'),
+      _todo('11', 'Drink Coconut Water', carried: true),
+    ],
+    RecurrenceType.none: [
+      _todo('12', 'Renew passport and book the appointment slot for next week', carried: true),
+    ],
+  },
+);
+
+class _FakeTodoController extends TodoController {
+  @override
+  TodoState build() => _todoState;
+
+  @override
+  Future<void> loadTodayTodos({bool silent = false}) async {}
+}
+
 class _FakeExpenseController extends ExpenseController {
   @override
   ExpenseState build() => ExpenseState(
@@ -181,6 +229,7 @@ Future<void> _pumpScreen(
         currentUserFirstNameProvider.overrideWithValue('Alex'),
         dashboardControllerProvider.overrideWith(_FakeDashboardController.new),
         expenseControllerProvider.overrideWith(_FakeExpenseController.new),
+        todoControllerProvider.overrideWith(_FakeTodoController.new),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -242,6 +291,7 @@ void main() {
   final screens = <String, (Widget, int)>{
     'dashboard': (const DashboardScreen(), 0),
     'expenses': (const ExpensesScreen(), 2),
+    'todos': (const TodosScreen(), 1),
   };
   // Tall viewports so the whole scrolling page is laid out (and captured).
   const widths = [360.0, 412.0];

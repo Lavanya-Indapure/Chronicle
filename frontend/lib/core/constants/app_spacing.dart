@@ -69,4 +69,8 @@ abstract final class AppSpacing {
   static const double glanceStripHeight = 156.0;
   static const double insightStripHeight = 150.0;
   static const double progressBarHeight = 8.0;
+  static const double ringSizeLg = 72.0; // Hero progress rings
+  static const double ringStrokeLg = 7.0;
+  static const double checkCircleSize = 26.0; // Todo check circles
+  static const double accentDotSize = 8.0;
 }

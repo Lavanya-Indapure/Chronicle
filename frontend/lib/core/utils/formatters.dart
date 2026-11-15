@@ -33,6 +33,9 @@ abstract final class AppFormatters {
   /// 15 Nov
   static String dayMonth(DateTime date) => DateFormat('d MMM').format(date);
 
+  /// Saturday, 15 Nov
+  static String weekdayDayMonth(DateTime date) => DateFormat('EEEE, d MMM').format(date);
+
   /// 7h 20m
   static String duration(Duration d) => '${d.inHours}h ${d.inMinutes.remainder(60)}m';
 }

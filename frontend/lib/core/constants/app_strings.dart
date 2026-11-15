@@ -145,6 +145,14 @@ abstract final class AppStrings {
   static const String deleteTodoMessage = 'Are you sure you want to delete';
   static const String cancel = 'Cancel';
   static const String delete = 'Delete';
+  static const String todayProgress = "Today's Progress";
+  static const String doneOf = 'of';
+  static const String doneSuffix = 'done';
+  static const String todosLeftSuffix = 'left — keep going!';
+  static const String todoLeftSuffix = 'left — almost there!';
+  static const String allDoneToday = 'All done for today 🎉';
+  static const String nothingStarted = "Let's get started";
+  static const String deleteTodoAllInstances = 'This removes it and all its repeats.';
 
   // ── More Sub-features ──
   static const String profile = 'Profile';

@@ -45,6 +45,22 @@ class TodoInstance {
     );
   }
 
+  /// Copy with a new completion state (used for optimistic UI updates).
+  TodoInstance withCompleted(bool completed) => TodoInstance(
+        id: id,
+        templateId: templateId,
+        userId: userId,
+        title: title,
+        description: description,
+        scheduledDate: scheduledDate,
+        isCompleted: completed,
+        completedAt: completed ? DateTime.now() : null,
+        isCarriedForward: isCarriedForward,
+        carriedFromDate: carriedFromDate,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
   Map<String, dynamic> toInsertJson() => {
         if (templateId != null) 'template_id': templateId,
         'user_id': userId,

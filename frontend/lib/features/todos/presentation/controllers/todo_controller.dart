@@ -65,8 +65,11 @@ class TodoController extends Notifier<TodoState> {
   }
 
   /// Load today's todos: generate instances from templates + carry forward.
-  Future<void> loadTodayTodos() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+  ///
+  /// With [silent], the current list stays on screen while refreshing
+  /// (used after edits so the list doesn't flash to a spinner).
+  Future<void> loadTodayTodos({bool silent = false}) async {
+    if (!silent) state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final today = DateTime.now();
       // 0. Check session
@@ -175,14 +178,32 @@ class TodoController extends Notifier<TodoState> {
     }
   }
 
-  /// Toggle completed state.
+  /// Toggle completed state. Updates the UI immediately, then persists;
+  /// reverts if the save fails.
   Future<void> toggleComplete(String instanceId, bool isCompleted) async {
+    final previous = state.groupedTodos;
+    state = state.copyWith(
+      groupedTodos: _mapInstances(previous, (i) => i.id == instanceId ? i.withCompleted(isCompleted) : i),
+    );
     try {
       await _repository.toggleComplete(instanceId, isCompleted);
-      await loadTodayTodos();
     } on AppException catch (e) {
-      state = state.copyWith(errorMessage: e.message);
+      state = state.copyWith(groupedTodos: previous, errorMessage: e.message);
     }
+  }
+
+  /// Applies [transform] to every instance; drops instances it maps to null
+  /// and groups that end up empty.
+  Map<RecurrenceType, List<TodoInstance>> _mapInstances(
+    Map<RecurrenceType, List<TodoInstance>> grouped,
+    TodoInstance? Function(TodoInstance) transform,
+  ) {
+    final result = <RecurrenceType, List<TodoInstance>>{};
+    for (final entry in grouped.entries) {
+      final items = entry.value.map(transform).whereType<TodoInstance>().toList();
+      if (items.isNotEmpty) result[entry.key] = items;
+    }
+    return result;
   }
 
   /// Edit a template.
@@ -199,7 +220,7 @@ class TodoController extends Notifier<TodoState> {
         description: description,
         recurrenceType: recurrenceType,
       );
-      await loadTodayTodos();
+      await loadTodayTodos(silent: true);
       return true;
     } on AppException catch (e) {
       state = state.copyWith(errorMessage: e.message);
@@ -207,13 +228,18 @@ class TodoController extends Notifier<TodoState> {
     }
   }
 
-  /// Delete a template.
+  /// Delete a template. Its instances leave the list immediately (a swiped
+  /// row must not stay in the tree); restored if the delete fails.
   Future<void> deleteTodo(String templateId) async {
+    final previous = state.groupedTodos;
+    state = state.copyWith(
+      groupedTodos: _mapInstances(previous, (i) => i.templateId == templateId ? null : i),
+    );
     try {
       await _repository.deleteTemplate(templateId);
-      await loadTodayTodos();
+      await loadTodayTodos(silent: true);
     } on AppException catch (e) {
-      state = state.copyWith(errorMessage: e.message);
+      state = state.copyWith(groupedTodos: previous, errorMessage: e.message);
     }
   }
 

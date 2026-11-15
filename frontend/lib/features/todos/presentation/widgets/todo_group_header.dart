@@ -1,51 +1,51 @@
 import 'package:flutter/material.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 
-/// Section header for grouped todos (e.g. "Daily (3)").
+/// Accent colour per recurrence group (dot, check fill, progress).
+extension RecurrenceAccent on RecurrenceType {
+  Color get accent => switch (this) {
+        RecurrenceType.daily => AppColors.chartBlue,
+        RecurrenceType.weekly => AppColors.chartOrchid,
+        RecurrenceType.monthly => AppColors.chartOrange,
+        RecurrenceType.none => AppColors.chartTeal,
+      };
+}
+
+/// Section header: "● Daily ................ 3/9".
 class TodoGroupHeader extends StatelessWidget {
   final RecurrenceType type;
-  final int count;
+  final int completed;
+  final int total;
 
   const TodoGroupHeader({
     super.key,
     required this.type,
-    required this.count,
+    required this.completed,
+    required this.total,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final done = completed == total;
 
     return Padding(
-      padding: const EdgeInsets.only(
-        top: AppSpacing.md,
-        bottom: AppSpacing.sm,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
       child: Row(
         children: [
-          Text(
-            type.label,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+          Container(
+            width: AppSpacing.accentDotSize,
+            height: AppSpacing.accentDotSize,
+            decoration: BoxDecoration(color: type.accent, shape: BoxShape.circle),
           ),
           AppSpacing.hGapSm,
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: 2,
-            ),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: AppSpacing.borderRadiusSm,
-            ),
-            child: Text(
-              '$count',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w600,
-              ),
+          Expanded(child: Text(type.label, style: theme.textTheme.titleMedium)),
+          Text(
+            '$completed/$total',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: done ? AppColors.success : theme.colorScheme.onSurfaceVariant,
             ),
           ),
         ],

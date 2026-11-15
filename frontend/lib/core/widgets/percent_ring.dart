@@ -8,6 +8,8 @@ class PercentRing extends StatelessWidget {
   final Color color;
   final double size;
   final double strokeWidth;
+  final Color? trackColor;
+  final TextStyle? labelStyle;
 
   const PercentRing({
     super.key,
@@ -15,6 +17,8 @@ class PercentRing extends StatelessWidget {
     required this.color,
     this.size = AppSpacing.ringSizeSm,
     this.strokeWidth = AppSpacing.ringStrokeSm,
+    this.trackColor,
+    this.labelStyle,
   });
 
   @override
@@ -37,13 +41,13 @@ class PercentRing extends StatelessWidget {
                 strokeWidth: strokeWidth,
                 strokeCap: StrokeCap.round,
                 color: color,
-                backgroundColor: theme.colorScheme.surfaceContainerLowest,
+                backgroundColor: trackColor ?? theme.colorScheme.surfaceContainerLowest,
               ),
             ),
           ),
           Text(
             AppFormatters.percent(value),
-            style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurface),
+            style: labelStyle ?? theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurface),
           ),
         ],
       ),
