@@ -49,7 +49,7 @@ abstract final class AppStrings {
   static const String avgPerDay = '/day avg';
   static const String averagePerDay = 'average per day';
   static const String possibleSavings = 'Could Save';
-  static const String highestDay = 'Highest Day';
+  static const String highestDay = 'Top day';
   static const String yourDay = 'Your Day';
   static const String tasksDone = 'Tasks done';
   static const String currentStreak = 'Current streak';
@@ -70,6 +70,11 @@ abstract final class AppStrings {
   static const String moods = 'Moods';
   static const String dashboardLoadFailed = 'Failed to load dashboard';
   static const String notEnoughData = 'Log a few expenses to see your trend';
+  static const String upNext = 'Up Next';
+  static const String allCaughtUp = 'All caught up for today 🎉';
+  static const String noTodosToday = 'Nothing planned for today';
+  static const String moreTodosPrefix = '+';
+  static const String moreTodosSuffix = 'more to do';
 
   // ── Quick Add ──
   static const String quickAdd = 'Quick Add';

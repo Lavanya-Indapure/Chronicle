@@ -64,7 +64,7 @@ class TodoItemTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
           child: Row(
             children: [
-              _CheckCircle(checked: completed, accent: accent, onTap: onToggle, label: instance.title),
+              TodoCheckCircle(checked: completed, accent: accent, onTap: onToggle, label: instance.title),
               AppSpacing.hGapXs,
               Expanded(
                 child: Padding(
@@ -100,13 +100,20 @@ class TodoItemTile extends StatelessWidget {
 }
 
 /// Round, animated check target (48dp hit area around a 26dp circle).
-class _CheckCircle extends StatelessWidget {
+/// Shared by the Todos screen and the dashboard's "Up Next" card.
+class TodoCheckCircle extends StatelessWidget {
   final bool checked;
   final Color accent;
   final VoidCallback onTap;
   final String label;
 
-  const _CheckCircle({required this.checked, required this.accent, required this.onTap, required this.label});
+  const TodoCheckCircle({
+    super.key,
+    required this.checked,
+    required this.accent,
+    required this.onTap,
+    required this.label,
+  });
 
   @override
   Widget build(BuildContext context) {

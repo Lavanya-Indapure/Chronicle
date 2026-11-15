@@ -3,8 +3,8 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/widgets/icon_badge.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 
-/// Compact stat card for the horizontal "Your Day" strip
-/// (styled after the reference's bank-account cards).
+/// Compact stat tile for the dashboard's 2×2 "Your Day" grid.
+/// Width comes from the parent; height is fixed so tiles line up.
 class GlanceCard extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -27,7 +27,7 @@ class GlanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SizedBox(
-      width: AppSpacing.statCardWidth,
+      height: AppSpacing.glanceTileHeight,
       child: SurfaceCard(
         onTap: onTap,
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -36,10 +36,10 @@ class GlanceCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                IconBadge(icon: icon, color: color, size: AppSpacing.xl + 4),
+                IconBadge(icon: icon, color: color, size: AppSpacing.xl),
                 AppSpacing.hGapSm,
                 Expanded(
-                  child: Text(label, style: theme.textTheme.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  child: Text(label, style: theme.textTheme.labelMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                 ),
               ],
             ),
@@ -47,7 +47,7 @@ class GlanceCard extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(value, style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+              child: Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
             ),
             Text(caption, style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
           ],

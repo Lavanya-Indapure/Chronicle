@@ -15,6 +15,10 @@ import 'package:chronicle/features/dashboard/presentation/widgets/dashboard_head
 import 'package:chronicle/features/dashboard/presentation/widgets/glance_card.dart';
 import 'package:chronicle/features/dashboard/presentation/widgets/insight_card.dart';
 import 'package:chronicle/features/dashboard/presentation/widgets/spending_chart_card.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/up_next_card.dart';
+
+/// Vertical space between dashboard sections.
+const _sectionGap = SizedBox(height: AppSpacing.lg - 4);
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -42,20 +46,17 @@ class DashboardScreen extends ConsumerWidget {
         child: RefreshIndicator(
           onRefresh: notifier.refresh,
           child: ListView(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md, AppSpacing.gutter, AppSpacing.lg),
             children: [
-              const Padding(padding: AppSpacing.paddingGutter, child: DashboardHeader()),
-              AppSpacing.gapLg,
-              Padding(
-                padding: AppSpacing.paddingGutter,
-                child: PillTabs<DashboardDateFilter>(
-                  values: _filters,
-                  labelOf: _filterLabel,
-                  selected: state.filter == DashboardDateFilter.custom ? DashboardDateFilter.thisMonth : state.filter,
-                  onChanged: notifier.setFilter,
-                ),
+              const DashboardHeader(),
+              AppSpacing.gapMd,
+              PillTabs<DashboardDateFilter>(
+                values: _filters,
+                labelOf: _filterLabel,
+                selected: state.filter == DashboardDateFilter.custom ? DashboardDateFilter.thisMonth : state.filter,
+                onChanged: notifier.setFilter,
               ),
-              AppSpacing.gapLg,
+              AppSpacing.gapMd,
               if (state.errorMessage != null)
                 _ErrorBody(message: state.errorMessage!)
               else if (state.isLoading)
@@ -81,8 +82,6 @@ class _DashboardBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final expense = state.expenseAnalytics;
-    final todo = state.todoAnalytics;
-    final health = state.healthAnalytics;
     final insights = [
       if (expense.warningMessage != null)
         SmartInsight(id: 'expense-warning', message: expense.warningMessage!, type: InsightType.warning),
@@ -92,123 +91,107 @@ class _DashboardBody extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Hero ──
-        Padding(
-          padding: AppSpacing.paddingGutter,
-          child: HeroSummaryCard(
-            title: AppStrings.totalSpent,
-            amount: AppFormatters.currency(expense.totalSpent),
-            badge: '${AppFormatters.currency(expense.averageDaily)} ${AppStrings.avgPerDay}',
-            badgeIcon: Icons.show_chart_rounded,
-            stats: [
-              HeroStat(
-                icon: Icons.savings_outlined,
-                iconColor: AppColors.success,
-                value: AppFormatters.currency(expense.possibleSavings),
-                label: AppStrings.possibleSavings,
-              ),
-              HeroStat(
-                icon: Icons.arrow_upward_rounded,
-                iconColor: AppColors.error,
-                value: AppFormatters.currency(expense.highestDayAmount),
-                label: expense.highestDay == null
-                    ? AppStrings.highestDay
-                    : '${AppStrings.highestDay} · ${AppFormatters.dayMonth(expense.highestDay!)}',
-              ),
-            ],
-          ),
-        ),
-        AppSpacing.gapLg,
-
-        // ── Your day ──
-        const Padding(padding: AppSpacing.paddingGutter, child: SectionHeader(title: AppStrings.yourDay)),
-        AppSpacing.gapMd,
-        _HorizontalStrip(
-          height: AppSpacing.glanceStripHeight,
-          children: [
-            GlanceCard(
-              icon: Icons.check_circle_outline_rounded,
-              color: AppColors.chartBlue,
-              label: AppStrings.todosLabel,
-              value: '${todo.completedTasks}/${todo.totalTasks}',
-              caption: '${todo.completionPercentage.toStringAsFixed(0)}% ${AppStrings.tasksDone.toLowerCase()}',
-              onTap: () => context.go('/todos'),
+        HeroSummaryCard(
+          compact: true,
+          title: AppStrings.totalSpent,
+          amount: AppFormatters.currency(expense.totalSpent),
+          badge: '${AppFormatters.currency(expense.averageDaily)} ${AppStrings.avgPerDay}',
+          badgeIcon: Icons.show_chart_rounded,
+          stats: [
+            HeroStat(
+              icon: Icons.savings_outlined,
+              iconColor: AppColors.success,
+              value: AppFormatters.currency(expense.possibleSavings),
+              label: AppStrings.possibleSavings,
             ),
-            GlanceCard(
-              icon: Icons.local_fire_department_outlined,
-              color: AppColors.chartOrange,
-              label: AppStrings.streakLabel,
-              value: '${todo.currentStreak} ${AppStrings.days}',
-              caption: '${AppStrings.bestStreakSuffix} ${todo.bestStreak} ${AppStrings.days}',
-            ),
-            GlanceCard(
-              icon: Icons.water_drop_outlined,
-              color: AppColors.chartTeal,
-              label: AppStrings.hydration,
-              value: '${health.hydrationPercentage.toStringAsFixed(0)}%',
-              caption: health.hydrationPercentage >= 100
-                  ? AppStrings.hydrationGoalReached
-                  : AppStrings.hydrationKeepGoing,
-              onTap: () => context.go('/health/hydration'),
-            ),
-            GlanceCard(
-              icon: Icons.nights_stay_outlined,
-              color: AppColors.chartOrchid,
-              label: AppStrings.sleep,
-              value: health.lastNightSleep != null ? AppFormatters.duration(health.lastNightSleep!) : AppStrings.noData,
-              caption: AppStrings.lastNight,
-              onTap: () => context.go('/health/sleep'),
+            HeroStat(
+              icon: Icons.arrow_upward_rounded,
+              iconColor: AppColors.error,
+              value: AppFormatters.currency(expense.highestDayAmount),
+              label: expense.highestDay == null
+                  ? AppStrings.highestDay
+                  : '${AppStrings.highestDay} · ${AppFormatters.dayMonth(expense.highestDay!)}',
             ),
           ],
         ),
-        AppSpacing.gapLg,
-
-        // ── Spending trend ──
-        Padding(padding: AppSpacing.paddingGutter, child: SpendingChartCard(analytics: expense)),
-
-        // ── Insights ──
+        // Spending trend sits right under the spending summary it explains.
+        AppSpacing.gapSm,
+        SpendingChartCard(analytics: expense),
+        _sectionGap,
+        const SectionHeader(title: AppStrings.yourDay, compact: true),
+        AppSpacing.gapSm,
+        _GlanceGrid(state: state),
+        _sectionGap,
+        const UpNextCard(),
         if (insights.isNotEmpty) ...[
-          AppSpacing.gapLg,
-          const Padding(padding: AppSpacing.paddingGutter, child: SectionHeader(title: AppStrings.insights)),
-          AppSpacing.gapMd,
-          _HorizontalStrip(
-            height: AppSpacing.insightStripHeight,
-            children: [for (final i in insights) InsightCard(insight: i)],
-          ),
+          _sectionGap,
+          const SectionHeader(title: AppStrings.insights, compact: true),
+          AppSpacing.gapSm,
+          InsightsCard(insights: insights),
         ],
-        AppSpacing.gapLg,
-
-        // ── Activity ──
-        const Padding(padding: AppSpacing.paddingGutter, child: SectionHeader(title: AppStrings.recentActivity)),
-        AppSpacing.gapMd,
-        Padding(
-          padding: AppSpacing.paddingGutter,
-          child: ActivitySummaryRow(summary: state.activitySummary),
-        ),
-        AppSpacing.gapLg,
+        _sectionGap,
+        const SectionHeader(title: AppStrings.recentActivity, compact: true),
+        AppSpacing.gapSm,
+        ActivitySummaryRow(summary: state.activitySummary),
       ],
     );
   }
 }
 
-/// Horizontally scrolling row of fixed-height cards, aligned to the gutter.
-class _HorizontalStrip extends StatelessWidget {
-  final double height;
-  final List<Widget> children;
+/// 2×2 grid: todos, streak, water, sleep.
+class _GlanceGrid extends StatelessWidget {
+  final DashboardState state;
 
-  const _HorizontalStrip({required this.height, required this.children});
+  const _GlanceGrid({required this.state});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: height,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: AppSpacing.paddingGutter,
-        itemCount: children.length,
-        separatorBuilder: (_, _) => AppSpacing.hGapSm,
-        itemBuilder: (_, i) => children[i],
-      ),
+    final todo = state.todoAnalytics;
+    final health = state.healthAnalytics;
+
+    Widget row(Widget a, Widget b) => Row(
+          children: [Expanded(child: a), AppSpacing.hGapSm, Expanded(child: b)],
+        );
+
+    return Column(
+      children: [
+        row(
+          GlanceCard(
+            icon: Icons.check_circle_outline_rounded,
+            color: AppColors.chartBlue,
+            label: AppStrings.todosLabel,
+            value: '${todo.completedTasks}/${todo.totalTasks}',
+            caption: '${todo.completionPercentage.toStringAsFixed(0)}% ${AppStrings.tasksDone.toLowerCase()}',
+            onTap: () => context.go('/todos'),
+          ),
+          GlanceCard(
+            icon: Icons.local_fire_department_outlined,
+            color: AppColors.chartOrange,
+            label: AppStrings.streakLabel,
+            value: '${todo.currentStreak} ${AppStrings.days}',
+            caption: '${AppStrings.bestStreakSuffix} ${todo.bestStreak} ${AppStrings.days}',
+          ),
+        ),
+        AppSpacing.gapSm,
+        row(
+          GlanceCard(
+            icon: Icons.water_drop_outlined,
+            color: AppColors.chartTeal,
+            label: AppStrings.hydration,
+            value: '${health.hydrationPercentage.toStringAsFixed(0)}%',
+            caption: health.hydrationPercentage >= 100 ? AppStrings.hydrationGoalReached : AppStrings.hydrationKeepGoing,
+            onTap: () => context.go('/health/hydration'),
+          ),
+          GlanceCard(
+            icon: Icons.nights_stay_outlined,
+            color: AppColors.chartOrchid,
+            label: AppStrings.sleep,
+            value: health.lastNightSleep != null ? AppFormatters.duration(health.lastNightSleep!) : AppStrings.noData,
+            caption: AppStrings.lastNight,
+            onTap: () => context.go('/health/sleep'),
+          ),
+        ),
+      ],
     );
   }
 }

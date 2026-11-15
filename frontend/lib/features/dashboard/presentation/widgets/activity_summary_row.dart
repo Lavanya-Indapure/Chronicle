@@ -71,10 +71,10 @@ class _ActivityTile extends StatelessWidget {
     final theme = Theme.of(context);
     return SurfaceCard(
       onTap: () => context.push(route),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md - 4, horizontal: AppSpacing.sm),
       child: Column(
         children: [
-          IconBadge(icon: icon, color: color),
+          IconBadge(icon: icon, color: color, size: AppSpacing.xl + 4),
           AppSpacing.gapSm,
           Text('$count', style: theme.textTheme.headlineSmall),
           Text(label, style: theme.textTheme.bodySmall),

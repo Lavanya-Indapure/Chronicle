@@ -7,7 +7,10 @@ class SectionHeader extends StatelessWidget {
   final String? subtitle;
   final Widget? trailing;
 
-  const SectionHeader({super.key, required this.title, this.subtitle, this.trailing});
+  /// Smaller heading for dense screens (e.g. the dashboard).
+  final bool compact;
+
+  const SectionHeader({super.key, required this.title, this.subtitle, this.trailing, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +22,9 @@ class SectionHeader extends StatelessWidget {
           child: Text.rich(
             TextSpan(
               text: title,
-              style: theme.textTheme.titleLarge,
+              style: compact
+                  ? theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)
+                  : theme.textTheme.titleLarge,
               children: [
                 if (subtitle != null)
                   TextSpan(text: '  $subtitle', style: theme.textTheme.bodySmall),

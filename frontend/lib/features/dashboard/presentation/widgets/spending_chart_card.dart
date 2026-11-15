@@ -8,7 +8,7 @@ import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 import 'package:chronicle/features/dashboard/domain/models/dashboard_models.dart';
 
-/// "Avg. monthly expenses"-style card: headline figure + daily line chart.
+/// Daily spending line chart with the daily average in the header.
 class SpendingChartCard extends StatelessWidget {
   final ExpenseAnalytics analytics;
 
@@ -23,22 +23,19 @@ class SpendingChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(AppStrings.dailySpending, style: theme.textTheme.bodyMedium),
-          AppSpacing.gapXs,
-          Text(
-            AppFormatters.currency(analytics.averageDaily),
-            style: theme.textTheme.headlineLarge,
-          ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              const Icon(Icons.show_chart_rounded, size: AppSpacing.md, color: AppColors.success),
-              AppSpacing.hGapXs,
-              Text(AppStrings.averagePerDay, style: theme.textTheme.bodySmall),
+              Expanded(
+                child: Text(AppStrings.dailySpending, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ),
+              Text(AppFormatters.currency(analytics.averageDaily), style: theme.textTheme.titleMedium),
+              Text(' ${AppStrings.avgPerDay}', style: theme.textTheme.bodySmall),
             ],
           ),
-          AppSpacing.gapLg,
+          AppSpacing.gapMd,
           SizedBox(
-            height: AppSpacing.chartHeight,
+            height: AppSpacing.chartHeightCompact,
             child: hasTrend
                 ? _SpendingLineChart(chartData: analytics.chartData)
                 : Center(child: Text(AppStrings.notEnoughData, style: theme.textTheme.bodySmall)),

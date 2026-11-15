@@ -66,8 +66,8 @@ abstract final class AppSpacing {
   static const double chartHeight = 190.0;
   static const double statCardWidth = 168.0;
   static const double insightCardWidth = 200.0;
-  static const double glanceStripHeight = 156.0;
-  static const double insightStripHeight = 150.0;
+  static const double glanceTileHeight = 116.0;
+  static const double chartHeightCompact = 150.0;
   static const double progressBarHeight = 8.0;
   static const double ringSizeLg = 72.0; // Hero progress rings
   static const double ringStrokeLg = 7.0;

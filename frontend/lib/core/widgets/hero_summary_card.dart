@@ -26,6 +26,10 @@ class HeroSummaryCard extends StatelessWidget {
   final IconData? badgeIcon;
   final List<HeroStat> stats;
 
+  /// Left-aligned, shorter layout: title and badge share the top row and the
+  /// amount is one size smaller.
+  final bool compact;
+
   const HeroSummaryCard({
     super.key,
     required this.title,
@@ -33,6 +37,7 @@ class HeroSummaryCard extends StatelessWidget {
     this.badge,
     this.badgeIcon,
     this.stats = const [],
+    this.compact = false,
   });
 
   @override
@@ -40,6 +45,8 @@ class HeroSummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final ink = colors.onPrimaryContainer;
+
+    if (compact) return _buildCompact(theme, colors, ink);
 
     return Container(
       width: double.infinity,
@@ -67,6 +74,41 @@ class HeroSummaryCard extends StatelessWidget {
             Row(
               children: [
                 for (final stat in stats) Expanded(child: _StatTile(stat: stat, ink: ink)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompact(ThemeData theme, ColorScheme colors, Color ink) {
+    return Container(
+      width: double.infinity,
+      padding: AppSpacing.paddingCard,
+      decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: AppSpacing.borderRadiusXl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(title, style: theme.textTheme.titleSmall?.copyWith(color: ink))),
+              if (badge != null) _Badge(text: badge!, icon: badgeIcon),
+            ],
+          ),
+          AppSpacing.gapXs,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(amount, style: theme.textTheme.headlineLarge?.copyWith(color: ink, fontWeight: FontWeight.w700)),
+          ),
+          if (stats.isNotEmpty) ...[
+            AppSpacing.gapMd,
+            Divider(height: 1, color: ink.withValues(alpha: 0.12)),
+            AppSpacing.gapMd,
+            Row(
+              children: [
+                for (final stat in stats) Expanded(child: _StatTile(stat: stat, ink: ink, compact: true)),
               ],
             ),
           ],
@@ -106,15 +148,23 @@ class _Badge extends StatelessWidget {
 class _StatTile extends StatelessWidget {
   final HeroStat stat;
   final Color ink;
+  final bool compact;
 
-  const _StatTile({required this.stat, required this.ink});
+  const _StatTile({required this.stat, required this.ink, this.compact = false});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final valueStyle = compact ? theme.textTheme.titleMedium : theme.textTheme.headlineSmall;
     return Row(
       children: [
-        IconBadge(icon: stat.icon, color: stat.iconColor, onColor: ink, filled: true, size: AppSpacing.xl + 6),
+        IconBadge(
+          icon: stat.icon,
+          color: stat.iconColor,
+          onColor: ink,
+          filled: true,
+          size: compact ? AppSpacing.xl : AppSpacing.xl + 6,
+        ),
         AppSpacing.hGapSm,
         Expanded(
           child: Column(
@@ -125,7 +175,7 @@ class _StatTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   stat.value,
-                  style: theme.textTheme.headlineSmall?.copyWith(color: ink, fontWeight: FontWeight.w700),
+                  style: valueStyle?.copyWith(color: ink, fontWeight: FontWeight.w700),
                 ),
               ),
               Text(
