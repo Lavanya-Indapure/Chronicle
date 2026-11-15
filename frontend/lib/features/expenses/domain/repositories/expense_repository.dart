@@ -13,6 +13,14 @@ abstract class ExpenseRepository {
     required bool isNecessary,
     required DateTime date,
   });
+  Future<void> updateExpense({
+    required String id,
+    required double amount,
+    String? description,
+    String? categoryId,
+    required bool isNecessary,
+    required DateTime date,
+  });
   Future<void> deleteExpense(String id);
 
   // Budgets

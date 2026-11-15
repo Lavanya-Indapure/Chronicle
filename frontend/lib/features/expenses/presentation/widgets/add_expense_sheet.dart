@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
-import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
+import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
-
+import 'package:chronicle/features/expenses/domain/models/expense.dart';
+import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 
 class AddExpenseSheet extends ConsumerStatefulWidget {
   final Future<bool> Function({
@@ -15,19 +16,39 @@ class AddExpenseSheet extends ConsumerStatefulWidget {
     required DateTime date,
   }) onSubmit;
 
-  const AddExpenseSheet({super.key, required this.onSubmit});
+  /// When set, the sheet edits this expense instead of creating a new one.
+  final Expense? initial;
+
+  const AddExpenseSheet({super.key, required this.onSubmit, this.initial});
 
   @override
   ConsumerState<AddExpenseSheet> createState() => _AddExpenseSheetState();
 }
 
 class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  bool _isNecessary = true;
-  DateTime _selectedDate = DateTime.now();
-  String? _selectedCategoryId;
+  late final _amountController = TextEditingController(
+    text: widget.initial == null ? null : _formatAmount(widget.initial!.amount),
+  );
+  late final _descriptionController = TextEditingController(text: widget.initial?.description);
+  late bool _isNecessary = widget.initial?.isNecessary ?? true;
+  late DateTime _selectedDate = widget.initial?.expenseDate ?? DateTime.now();
+  late String? _selectedCategoryId = widget.initial?.categoryId;
   bool _isLoading = false;
+
+  bool get _isEditing => widget.initial != null;
+
+  /// 120.0 → "120", 99.5 → "99.5"
+  static String _formatAmount(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) setState(() => _selectedDate = picked);
+  }
 
   @override
   void dispose() {
@@ -71,17 +92,17 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Add Expense', style: theme.textTheme.titleLarge),
+          Text(_isEditing ? AppStrings.editExpense : AppStrings.addExpense, style: theme.textTheme.titleLarge),
           AppSpacing.gapMd,
 
           // Amount
           TextFormField(
             controller: _amountController,
-            autofocus: true,
+            autofocus: !_isEditing,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
-              labelText: 'Amount',
-              prefixIcon: Icon(Icons.attach_money),
+              labelText: AppStrings.amount,
+              prefixIcon: Icon(Icons.currency_rupee_rounded),
             ),
             textInputAction: TextInputAction.next,
           ),
@@ -124,7 +145,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   },
                 ),
               ),
-              AppSpacing.gapSm,
+              AppSpacing.hGapSm,
               IconButton.filledTonal(
                 onPressed: _showAddCategoryDialog,
                 icon: const Icon(Icons.add),
@@ -133,6 +154,20 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
             ],
           ),
           AppSpacing.gapMd,
+
+          // Date
+          Material(
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: AppSpacing.borderRadiusLg,
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              onTap: _pickDate,
+              leading: const Icon(Icons.calendar_today_outlined),
+              title: const Text(AppStrings.date),
+              trailing: Text(AppFormatters.dayMonthYear(_selectedDate), style: theme.textTheme.titleSmall),
+            ),
+          ),
+          AppSpacing.gapSm,
 
           // Necessity Toggle
           SwitchListTile(
@@ -154,7 +189,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Save Expense'),
+                : Text(_isEditing ? AppStrings.saveChanges : AppStrings.saveExpense),
           ),
         ],
       ),

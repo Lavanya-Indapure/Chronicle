@@ -8,12 +8,12 @@ import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/action_pill.dart';
 import 'package:chronicle/core/widgets/circle_icon_button.dart';
 import 'package:chronicle/core/widgets/hero_summary_card.dart';
-import 'package:chronicle/core/widgets/icon_badge.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/core/widgets/section_header.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 import 'package:chronicle/features/dashboard/presentation/controllers/dashboard_controller.dart';
 import 'package:chronicle/features/expenses/domain/models/budget.dart';
+import 'package:chronicle/features/expenses/domain/models/category_spend.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
@@ -24,8 +24,10 @@ import 'package:chronicle/features/expenses/presentation/widgets/budget_dialogs.
 import 'package:chronicle/features/expenses/presentation/widgets/category_breakdown_section.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/category_visuals.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/debt_list_tile.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/expense_detail_sheet.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/expense_list_tile.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/expense_sheets.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/month_switcher.dart';
 
 enum _ExpenseTab { categories, budgets }
 
@@ -39,15 +41,31 @@ class ExpensesScreen extends ConsumerStatefulWidget {
 class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   _ExpenseTab _tab = _ExpenseTab.categories;
 
+  ExpenseController get _controller => ref.read(expenseControllerProvider.notifier);
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(expenseControllerProvider.notifier).loadAllData());
+    Future.microtask(() => _controller.loadAllData());
   }
 
   void _refreshDashboard() => ref.read(dashboardControllerProvider.notifier).refresh();
 
-  void _openPage(Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+  /// Opens Expense History pre-filtered to the viewed month (and optionally
+  /// one category); clears the filter again on return.
+  Future<void> _openHistory({String? categoryId}) async {
+    final state = ref.read(expenseControllerProvider);
+    final month = state.viewMonth;
+    _controller
+      ..setExpenseSearchQuery('')
+      ..setExpenseFilters(ExpenseFilters(
+        categoryId: categoryId,
+        startDate: month,
+        endDate: DateTime(month.year, month.month + 1, 0),
+      ));
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpenseHistoryScreen()));
+    if (mounted) _controller.clearExpenseFilters();
+  }
 
   Future<void> _confirmSettle(Transaction t) async {
     final confirmed = await showDialog<bool>(
@@ -61,56 +79,50 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
         ],
       ),
     );
-    if (confirmed == true) {
-      await ref.read(expenseControllerProvider.notifier).settleTransaction(t.id);
-    }
+    if (confirmed == true) await _controller.settleTransaction(t.id);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(expenseControllerProvider);
-    final breakdown = state.monthlyCategoryBreakdown;
 
+    ref.listen(expenseControllerProvider.select((s) => s.errorMessage), (prev, next) {
+      if (next != null && next != prev) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(next)));
+      }
+    });
+
+    final breakdown = state.viewMonthBreakdown;
     // Keep a category's colour identical in the donut, tiles and list rows.
-    final rankByCategory = {for (var i = 0; i < breakdown.length; i++) breakdown[i].name: i};
-    Color colorFor(String? category) =>
-        CategoryVisuals.colorAt(rankByCategory[category] ?? (category?.hashCode ?? 0).abs());
+    final rankByCategory = {for (var i = 0; i < breakdown.length; i++) breakdown[i].categoryId: i};
+    Color colorFor(String? categoryId) =>
+        CategoryVisuals.colorAt(rankByCategory[categoryId] ?? (categoryId?.hashCode ?? 0).abs());
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () => ref.read(expenseControllerProvider.notifier).loadAllData(),
+          onRefresh: _controller.loadAllData,
           child: state.isLoading && state.expenses.isEmpty
               ? const Center(child: CircularProgressIndicator())
               : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter, vertical: AppSpacing.md),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md, AppSpacing.gutter, AppSpacing.lg),
                   children: [
                     _Header(
-                      onSearch: () => _openPage(const ExpenseHistoryScreen()),
+                      onSearch: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const ExpenseHistoryScreen()),
+                      ),
                       onBudgets: () => showBudgetOptionsSheet(context, ref),
                     ),
-                    AppSpacing.gapLg,
-                    HeroSummaryCard(
-                      title: AppStrings.spentThisMonth,
-                      amount: AppFormatters.currency(state.spentThisMonth),
-                      badge: '${AppFormatters.currency(state.spentThisWeek)} ${AppStrings.thisWeek}',
-                      badgeIcon: Icons.show_chart_rounded,
-                      stats: [
-                        HeroStat(
-                          icon: Icons.arrow_upward_rounded,
-                          iconColor: AppColors.error,
-                          value: AppFormatters.currency(state.youOwe),
-                          label: AppStrings.youOwe,
-                        ),
-                        HeroStat(
-                          icon: Icons.arrow_downward_rounded,
-                          iconColor: AppColors.success,
-                          value: AppFormatters.currency(state.othersOweYou),
-                          label: AppStrings.owedToYou,
-                        ),
-                      ],
+                    AppSpacing.gapMd,
+                    MonthSwitcher(
+                      month: state.viewMonth,
+                      onPrevious: state.canGoToPreviousMonth ? _controller.showPreviousMonth : null,
+                      onNext: state.canGoToNextMonth ? _controller.showNextMonth : null,
                     ),
+                    AppSpacing.gapMd,
+                    _MonthSummary(state: state),
                     AppSpacing.gapMd,
                     _QuickActions(
                       onAddExpense: () => showAddExpenseSheet(context, ref, onSaved: _refreshDashboard),
@@ -129,9 +141,11 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       duration: const Duration(milliseconds: 200),
                       child: _tab == _ExpenseTab.categories
                           ? CategoryBreakdownSection(
-                              key: const ValueKey(_ExpenseTab.categories),
+                              key: ValueKey(('categories', state.viewMonth)),
                               breakdown: breakdown,
-                              total: state.spentThisMonth,
+                              total: state.viewMonthSpent,
+                              month: state.viewMonth,
+                              onCategoryTap: (CategorySpend c) => _openHistory(categoryId: c.categoryId),
                             )
                           : _BudgetsSection(
                               key: const ValueKey(_ExpenseTab.budgets),
@@ -139,31 +153,30 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                               onEdit: (type) => showSetBudgetDialog(context, ref, type),
                             ),
                     ),
-                    if (state.unnecessarySpent > 0) ...[
-                      AppSpacing.gapMd,
-                      _SavingsInsight(amount: state.unnecessarySpent),
-                    ],
                     AppSpacing.gapXl,
                     SectionHeader(
                       title: AppStrings.transactions,
-                      trailing: TextButton(
-                        onPressed: () => _openPage(const ExpenseHistoryScreen()),
-                        child: const Text(AppStrings.seeAll),
-                      ),
+                      trailing: TextButton(onPressed: _openHistory, child: const Text(AppStrings.seeAll)),
                     ),
                     AppSpacing.gapSm,
-                    _RecentExpenses(expenses: state.expenses, colorFor: colorFor),
+                    _MonthExpenses(
+                      expenses: state.viewMonthExpenses,
+                      colorFor: colorFor,
+                      onTap: (e) => showExpenseDetails(context, ref, e, color: colorFor(e.categoryId), onChanged: _refreshDashboard),
+                      onDelete: (e) async {
+                        if (await _controller.deleteExpense(e.id)) _refreshDashboard();
+                      },
+                      onSeeAll: _openHistory,
+                    ),
                     AppSpacing.gapXl,
-                    SectionHeader(
-                      title: AppStrings.pendingDebts,
-                      trailing: TextButton(
-                        onPressed: () => _openPage(const TransactionHistoryScreen()),
-                        child: const Text(AppStrings.seeAll),
+                    _DebtsSection(
+                      state: state,
+                      onSettle: _confirmSettle,
+                      onSeeAll: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const TransactionHistoryScreen()),
                       ),
                     ),
-                    AppSpacing.gapSm,
-                    _PendingDebts(transactions: state.pendingTransactions, onSettle: _confirmSettle),
-                    AppSpacing.gapLg,
                   ],
                 ),
         ),
@@ -186,6 +199,89 @@ class _Header extends StatelessWidget {
         CircleIconButton(icon: Icons.search_rounded, tooltip: AppStrings.search, onPressed: onSearch),
         AppSpacing.hGapSm,
         CircleIconButton(icon: Icons.tune_rounded, tooltip: AppStrings.budgets, onPressed: onBudgets),
+      ],
+    );
+  }
+}
+
+/// Lemon summary for the viewed month: total, change vs the previous month,
+/// budget progress (current month only), daily average and non-essentials.
+class _MonthSummary extends StatelessWidget {
+  final ExpenseState state;
+
+  const _MonthSummary({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final spent = state.viewMonthSpent;
+    final previous = state.previousMonthSpent;
+    final prevMonth = DateTime(state.viewMonth.year, state.viewMonth.month - 1);
+
+    String? badge;
+    IconData? badgeIcon;
+    if (previous > 0) {
+      final change = (spent - previous) / previous;
+      final pct = (change.abs() * 100).round();
+      badgeIcon = pct == 0 ? Icons.trending_flat_rounded : (change > 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded);
+      badge = pct == 0
+          ? '${AppStrings.sameAsLastMonth} ${AppFormatters.shortMonth(prevMonth)}'
+          : '$pct% ${AppStrings.vs} ${AppFormatters.shortMonth(prevMonth)}';
+    }
+
+    final budget = state.currentMonthlyBudget;
+    return HeroSummaryCard(
+      title: '${AppStrings.spentIn} ${AppFormatters.monthName(state.viewMonth)}',
+      amount: AppFormatters.currency(spent),
+      badge: badge,
+      badgeIcon: badgeIcon,
+      footer: state.isViewingCurrentMonth && budget > 0 ? _BudgetProgress(spent: spent, budget: budget) : null,
+      stats: [
+        HeroStat(
+          icon: Icons.calendar_today_rounded,
+          iconColor: AppColors.chartBlue,
+          value: AppFormatters.currency(state.viewMonthDailyAverage),
+          label: AppStrings.dailyAvg,
+        ),
+        HeroStat(
+          icon: Icons.warning_amber_rounded,
+          iconColor: AppColors.warning,
+          value: AppFormatters.currency(state.viewMonthNonEssential),
+          label: AppStrings.nonEssentialSpend,
+        ),
+      ],
+    );
+  }
+}
+
+/// Budget bar drawn on the lemon card.
+class _BudgetProgress extends StatelessWidget {
+  final double spent;
+  final double budget;
+
+  const _BudgetProgress({required this.spent, required this.budget});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ink = theme.colorScheme.onPrimaryContainer;
+    final over = spent > budget;
+    final label = over
+        ? '${AppStrings.budgetOverPrefix} ${AppFormatters.currency(spent - budget)}'
+        : '${AppFormatters.currency(budget - spent)} ${AppStrings.budgetLeftSuffix} ${AppFormatters.currency(budget)}';
+
+    return Column(
+      children: [
+        ClipRRect(
+          borderRadius: AppSpacing.borderRadiusPill,
+          child: LinearProgressIndicator(
+            value: (spent / budget).clamp(0.0, 1.0),
+            minHeight: AppSpacing.progressBarHeight,
+            color: over ? AppColors.error : ink,
+            backgroundColor: ink.withValues(alpha: 0.12),
+          ),
+        ),
+        AppSpacing.gapXs,
+        Text(label, style: theme.textTheme.bodySmall?.copyWith(color: over ? AppColors.error : ink)),
       ],
     );
   }
@@ -247,56 +343,33 @@ class _BudgetsSection extends StatelessWidget {
   }
 }
 
-class _SavingsInsight extends StatelessWidget {
-  final double amount;
-
-  const _SavingsInsight({required this.amount});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SurfaceCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          const IconBadge(icon: Icons.lightbulb_outline_rounded, color: AppColors.chartLemon),
-          AppSpacing.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(AppStrings.savingsInsightTitle, style: theme.textTheme.titleSmall),
-                Text(
-                  '${AppStrings.savingsInsightPrefix} ${AppFormatters.currency(amount)} ${AppStrings.savingsInsightSuffix}',
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Latest expenses grouped under "Today · 15 Nov" style day labels.
-class _RecentExpenses extends StatelessWidget {
+/// The viewed month's expenses grouped by day ("Today · 15 Nov ..... ₹1,240").
+/// Tap a row for details; swipe left to delete.
+class _MonthExpenses extends StatelessWidget {
   final List<Expense> expenses;
-  final Color Function(String? category) colorFor;
+  final Color Function(String? categoryId) colorFor;
+  final ValueChanged<Expense> onTap;
+  final ValueChanged<Expense> onDelete;
+  final VoidCallback onSeeAll;
 
-  const _RecentExpenses({required this.expenses, required this.colorFor});
+  const _MonthExpenses({
+    required this.expenses,
+    required this.colorFor,
+    required this.onTap,
+    required this.onDelete,
+    required this.onSeeAll,
+  });
 
-  static String _dayLabel(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(date.year, date.month, date.day);
-    final diff = today.difference(day).inDays;
-    final prefix = switch (diff) {
+  static DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
+
+  static String _dayLabel(DateTime day) {
+    final today = _day(DateTime.now());
+    final prefix = switch (today.difference(day).inDays) {
       0 => '${AppStrings.today} · ',
       1 => '${AppStrings.yesterday} · ',
       _ => '',
     };
-    return '$prefix${AppFormatters.dayMonth(date)}';
+    return '$prefix${AppFormatters.dayMonth(day)}';
   }
 
   @override
@@ -304,51 +377,130 @@ class _RecentExpenses extends StatelessWidget {
     final theme = Theme.of(context);
     if (expenses.isEmpty) {
       return SurfaceCard(
-        child: Center(child: Text(AppStrings.noExpensesYet, style: theme.textTheme.bodyMedium)),
+        child: Center(child: Text(AppStrings.noExpensesThisMonth, style: theme.textTheme.bodyMedium)),
       );
     }
 
-    final recent = ([...expenses]..sort((a, b) => b.expenseDate.compareTo(a.expenseDate)))
-        .take(AppConstants.recentExpensesLimit);
+    final shown = expenses.take(AppConstants.recentExpensesLimit).toList();
+    // Day totals use every expense that day, not just the rows shown.
+    final dayTotals = <DateTime, double>{};
+    for (final e in expenses) {
+      dayTotals.update(_day(e.expenseDate), (v) => v + e.amount, ifAbsent: () => e.amount);
+    }
+
     final children = <Widget>[];
-    String? currentLabel;
-    for (final e in recent) {
-      final label = _dayLabel(e.expenseDate);
-      if (label != currentLabel) {
-        currentLabel = label;
+    DateTime? currentDay;
+    for (final e in shown) {
+      final day = _day(e.expenseDate);
+      if (day != currentDay) {
+        currentDay = day;
         children.add(Padding(
           padding: EdgeInsets.only(top: children.isEmpty ? 0 : AppSpacing.md, bottom: AppSpacing.sm),
-          child: Text(label, style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _dayLabel(day),
+                  style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ),
+              Text(AppFormatters.currency(dayTotals[day]!), style: theme.textTheme.labelMedium),
+            ],
+          ),
         ));
       } else {
         children.add(AppSpacing.gapSm);
       }
-      children.add(ExpenseListTile(expense: e, color: colorFor(e.category?.name)));
+      children.add(Dismissible(
+        key: ValueKey(e.id),
+        direction: DismissDirection.endToStart,
+        confirmDismiss: (_) => confirmDeleteExpense(context),
+        onDismissed: (_) => onDelete(e),
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: AppSpacing.lg),
+          decoration: BoxDecoration(color: AppColors.error, borderRadius: AppSpacing.borderRadiusXl),
+          child: Icon(Icons.delete_outline_rounded, color: theme.colorScheme.onError),
+        ),
+        child: ExpenseListTile(expense: e, color: colorFor(e.categoryId), onTap: () => onTap(e)),
+      ));
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: children);
+
+    final hidden = expenses.length - shown.length;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ...children,
+        if (hidden > 0) ...[
+          AppSpacing.gapSm,
+          TextButton(onPressed: onSeeAll, child: Text('${AppStrings.seeAll} (${expenses.length})')),
+        ],
+      ],
+    );
   }
 }
 
-class _PendingDebts extends StatelessWidget {
-  final List<Transaction> transactions;
+/// Owe / owed totals and the pending debts list.
+class _DebtsSection extends StatelessWidget {
+  final ExpenseState state;
   final ValueChanged<Transaction> onSettle;
+  final VoidCallback onSeeAll;
 
-  const _PendingDebts({required this.transactions, required this.onSettle});
+  const _DebtsSection({required this.state, required this.onSettle, required this.onSeeAll});
 
   @override
   Widget build(BuildContext context) {
-    if (transactions.isEmpty) {
-      return SurfaceCard(
-        child: Center(child: Text(AppStrings.allSettled, style: Theme.of(context).textTheme.bodyMedium)),
-      );
-    }
+    final theme = Theme.of(context);
+    final pending = state.pendingTransactions;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final t in transactions) ...[
-          DebtListTile(transaction: t, onSettle: () => onSettle(t)),
-          if (t != transactions.last) AppSpacing.gapSm,
-        ],
+        SectionHeader(
+          title: AppStrings.debts,
+          trailing: TextButton(onPressed: onSeeAll, child: const Text(AppStrings.seeAll)),
+        ),
+        AppSpacing.gapSm,
+        Row(
+          children: [
+            Expanded(child: _DebtTotal(label: AppStrings.youOwe, amount: state.youOwe, color: AppColors.error)),
+            AppSpacing.hGapSm,
+            Expanded(child: _DebtTotal(label: AppStrings.owedToYou, amount: state.othersOweYou, color: AppColors.success)),
+          ],
+        ),
+        AppSpacing.gapSm,
+        if (pending.isEmpty)
+          SurfaceCard(child: Center(child: Text(AppStrings.allSettled, style: theme.textTheme.bodyMedium)))
+        else
+          for (final t in pending) ...[
+            DebtListTile(transaction: t, onSettle: () => onSettle(t)),
+            if (t != pending.last) AppSpacing.gapSm,
+          ],
       ],
+    );
+  }
+}
+
+class _DebtTotal extends StatelessWidget {
+  final String label;
+  final double amount;
+  final Color color;
+
+  const _DebtTotal({required this.label, required this.amount, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SurfaceCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: theme.textTheme.bodySmall),
+          AppSpacing.gapXs,
+          Text(AppFormatters.currency(amount), style: theme.textTheme.titleLarge?.copyWith(color: color, fontWeight: FontWeight.w700)),
+        ],
+      ),
     );
   }
 }

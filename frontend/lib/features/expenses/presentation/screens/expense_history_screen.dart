@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/expense_filter_sheet.dart';
-import 'package:chronicle/features/expenses/domain/models/expense.dart';
+import 'package:chronicle/features/dashboard/presentation/controllers/dashboard_controller.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/category_visuals.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/expense_detail_sheet.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/expense_list_tile.dart';
 
 class ExpenseHistoryScreen extends ConsumerWidget {
   const ExpenseHistoryScreen({super.key});
@@ -78,12 +81,24 @@ class ExpenseHistoryScreen extends ConsumerWidget {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, AppSpacing.lg),
                     itemCount: expenses.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, _) => AppSpacing.gapSm,
                     itemBuilder: (context, index) {
                       final e = expenses[index];
-                      return _ExpenseHistoryTile(expense: e);
+                      final color = CategoryVisuals.colorAt((e.categoryId?.hashCode ?? 0).abs());
+                      return ExpenseListTile(
+                        expense: e,
+                        color: color,
+                        showDate: true,
+                        onTap: () => showExpenseDetails(
+                          context,
+                          ref,
+                          e,
+                          color: color,
+                          onChanged: () => ref.read(dashboardControllerProvider.notifier).refresh(),
+                        ),
+                      );
                     },
                   ),
           ),
@@ -104,58 +119,3 @@ class ExpenseHistoryScreen extends ConsumerWidget {
   }
 }
 
-class _ExpenseHistoryTile extends StatelessWidget {
-  final Expense expense;
-
-  const _ExpenseHistoryTile({required this.expense});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-      leading: CircleAvatar(
-        backgroundColor: (expense.isNecessary ? Colors.blue : Colors.orange).withValues(alpha: 0.1),
-        child: Icon(
-          expense.isNecessary ? Icons.check_circle_outline : Icons.shopping_bag_outlined,
-          color: expense.isNecessary ? Colors.blue : Colors.orange,
-          size: 20,
-        ),
-      ),
-      title: Row(
-        children: [
-          Expanded(child: Text(expense.description ?? expense.category?.name ?? 'Expense', style: const TextStyle(fontWeight: FontWeight.bold))),
-          Text(
-            '₹${expense.amount.toStringAsFixed(0)}',
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-        ],
-      ),
-      subtitle: Row(
-        children: [
-          Text(
-            '${expense.expenseDate.toString().split(' ').first}${expense.category != null && expense.description != null ? ' • ${expense.category!.name}' : ''}',
-            style: theme.textTheme.bodySmall,
-          ),
-          const Spacer(),
-          if (!expense.isNecessary)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                'Unnecessary',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: Colors.orange,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}

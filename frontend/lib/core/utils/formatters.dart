@@ -27,6 +27,12 @@ abstract final class AppFormatters {
   /// November 2026
   static String monthYear(DateTime date) => DateFormat('MMMM yyyy').format(date);
 
+  /// November
+  static String monthName(DateTime date) => DateFormat('MMMM').format(date);
+
+  /// Nov
+  static String shortMonth(DateTime date) => DateFormat('MMM').format(date);
+
   /// Nov 15
   static String shortDate(DateTime date) => DateFormat('MMM d').format(date);
 

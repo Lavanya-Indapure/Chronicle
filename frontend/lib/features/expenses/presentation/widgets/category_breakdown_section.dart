@@ -14,8 +14,18 @@ import 'package:chronicle/features/expenses/presentation/widgets/category_visual
 class CategoryBreakdownSection extends StatelessWidget {
   final List<CategorySpend> breakdown;
   final double total;
+  final DateTime month;
 
-  const CategoryBreakdownSection({super.key, required this.breakdown, required this.total});
+  /// Tapping a category tile (e.g. to list its expenses).
+  final ValueChanged<CategorySpend>? onCategoryTap;
+
+  const CategoryBreakdownSection({
+    super.key,
+    required this.breakdown,
+    required this.total,
+    required this.month,
+    this.onCategoryTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +33,7 @@ class CategoryBreakdownSection extends StatelessWidget {
 
     if (breakdown.isEmpty) {
       return SurfaceCard(
-        child: Center(child: Text(AppStrings.noCategoryData, style: theme.textTheme.bodyMedium)),
+        child: Center(child: Text(AppStrings.noExpensesThisMonth, style: theme.textTheme.bodyMedium)),
       );
     }
 
@@ -40,7 +50,7 @@ class CategoryBreakdownSection extends StatelessWidget {
               Icon(Icons.account_balance_wallet_rounded, color: theme.colorScheme.primary),
               AppSpacing.gapSm,
               Text(AppFormatters.currency(total), style: theme.textTheme.headlineSmall),
-              Text(AppFormatters.monthYear(DateTime.now()), style: theme.textTheme.bodySmall),
+              Text(AppFormatters.monthYear(month), style: theme.textTheme.bodySmall),
             ],
           ),
         ),
@@ -55,7 +65,14 @@ class CategoryBreakdownSection extends StatelessWidget {
                 for (var i = 0; i < breakdown.length; i++)
                   SizedBox(
                     width: tileWidth,
-                    child: _CategoryTile(spend: breakdown[i], color: CategoryVisuals.colorAt(i)),
+                    child: _CategoryTile(
+                      spend: breakdown[i],
+                      color: CategoryVisuals.colorAt(i),
+                      // Uncategorised spend can't be filtered on, so it isn't tappable.
+                      onTap: onCategoryTap == null || breakdown[i].categoryId == null
+                          ? null
+                          : () => onCategoryTap!(breakdown[i]),
+                    ),
                   ),
               ],
             );
@@ -69,8 +86,9 @@ class CategoryBreakdownSection extends StatelessWidget {
 class _CategoryTile extends StatelessWidget {
   final CategorySpend spend;
   final Color color;
+  final VoidCallback? onTap;
 
-  const _CategoryTile({required this.spend, required this.color});
+  const _CategoryTile({required this.spend, required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +96,7 @@ class _CategoryTile extends StatelessWidget {
     final countLabel = spend.count == 1 ? AppStrings.transactionSuffix : AppStrings.transactionsSuffix;
 
     return SurfaceCard(
+      onTap: onTap,
       padding: const EdgeInsets.all(AppSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

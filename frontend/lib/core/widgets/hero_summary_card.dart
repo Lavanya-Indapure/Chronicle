@@ -30,6 +30,10 @@ class HeroSummaryCard extends StatelessWidget {
   /// amount is one size smaller.
   final bool compact;
 
+  /// Optional extra content between the badge and the stats
+  /// (e.g. a budget progress bar). Drawn on the lemon background.
+  final Widget? footer;
+
   const HeroSummaryCard({
     super.key,
     required this.title,
@@ -38,6 +42,7 @@ class HeroSummaryCard extends StatelessWidget {
     this.badgeIcon,
     this.stats = const [],
     this.compact = false,
+    this.footer,
   });
 
   @override
@@ -68,6 +73,10 @@ class HeroSummaryCard extends StatelessWidget {
           if (badge != null) ...[
             AppSpacing.gapSm,
             _Badge(text: badge!, icon: badgeIcon),
+          ],
+          if (footer != null) ...[
+            AppSpacing.gapMd,
+            footer!,
           ],
           if (stats.isNotEmpty) ...[
             AppSpacing.gapLg,

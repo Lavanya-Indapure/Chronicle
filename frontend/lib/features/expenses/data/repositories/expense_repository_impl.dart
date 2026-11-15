@@ -49,6 +49,29 @@ class ExpenseRepositoryImpl implements ExpenseRepository {
   }
 
   @override
+  Future<void> updateExpense({
+    required String id,
+    required double amount,
+    String? description,
+    String? categoryId,
+    required bool isNecessary,
+    required DateTime date,
+  }) async {
+    try {
+      await _datasource.updateExpense(id, {
+        'amount': amount,
+        'description': description,
+        'category_id': categoryId,
+        'is_necessary': isNecessary,
+        'expense_date': date.toIso8601String().split('T').first,
+      });
+    } catch (e, st) {
+      LoggerService.error('Failed to update expense', error: e, stackTrace: st, tag: 'Expense');
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  @override
   Future<void> deleteExpense(String id) async {
     try {
       await _datasource.deleteExpense(id);

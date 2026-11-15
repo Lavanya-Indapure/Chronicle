@@ -40,6 +40,10 @@ class ExpenseState {
   final ExpenseFilters expenseFilters;
   final ExpenseSorting expenseSorting;
 
+  /// Month shown on the Expenses home screen (first day of month);
+  /// null = the current month.
+  final DateTime? selectedMonth;
+
   const ExpenseState({
     this.isLoading = false,
     this.errorMessage,
@@ -52,6 +56,7 @@ class ExpenseState {
     this.expenseSearchQuery = '',
     this.expenseFilters = const ExpenseFilters(),
     this.expenseSorting = ExpenseSorting.latest,
+    this.selectedMonth,
   });
 
   ExpenseState copyWith({
@@ -66,6 +71,7 @@ class ExpenseState {
     String? expenseSearchQuery,
     ExpenseFilters? expenseFilters,
     ExpenseSorting? expenseSorting,
+    DateTime? selectedMonth,
   }) =>
       ExpenseState(
         isLoading: isLoading ?? this.isLoading,
@@ -79,6 +85,7 @@ class ExpenseState {
         expenseSearchQuery: expenseSearchQuery ?? this.expenseSearchQuery,
         expenseFilters: expenseFilters ?? this.expenseFilters,
         expenseSorting: expenseSorting ?? this.expenseSorting,
+        selectedMonth: selectedMonth ?? this.selectedMonth,
       );
 
   List<Transaction> get filteredTransactions {
@@ -191,27 +198,68 @@ class ExpenseState {
   List<Expense> _expensesSince(DateTime start) =>
       expenses.where((e) => !e.expenseDate.isBefore(start)).toList();
 
-  double get spentThisMonth => _expensesSince(_monthStart).fold(0.0, (sum, e) => sum + e.amount);
-  double get spentThisWeek => _expensesSince(_weekStart).fold(0.0, (sum, e) => sum + e.amount);
+  double get spentThisMonth => _sum(expensesInMonth(_monthStart));
+  double get spentThisWeek => _sum(_expensesSince(_weekStart));
 
-  /// This month's spending grouped by category, largest first.
-  List<CategorySpend> get monthlyCategoryBreakdown {
+  static double _sum(Iterable<Expense> list) => list.fold(0.0, (sum, e) => sum + e.amount);
+
+  // ── Month view (Expenses home screen) ──
+
+  /// First day of the month being viewed.
+  DateTime get viewMonth => selectedMonth ?? _monthStart;
+  bool get isViewingCurrentMonth => viewMonth == _monthStart;
+
+  /// Earliest month with any expense — the month switcher's lower bound.
+  DateTime get earliestMonth {
+    if (expenses.isEmpty) return _monthStart;
+    final first = expenses.map((e) => e.expenseDate).reduce((a, b) => a.isBefore(b) ? a : b);
+    return DateTime(first.year, first.month);
+  }
+
+  bool get canGoToPreviousMonth => viewMonth.isAfter(earliestMonth);
+  bool get canGoToNextMonth => viewMonth.isBefore(_monthStart);
+
+  /// Expenses dated within [month] (first day of month), newest first.
+  List<Expense> expensesInMonth(DateTime month) {
+    final next = DateTime(month.year, month.month + 1);
+    return expenses
+        .where((e) => !e.expenseDate.isBefore(month) && e.expenseDate.isBefore(next))
+        .toList()
+      ..sort((a, b) => b.expenseDate.compareTo(a.expenseDate));
+  }
+
+  List<Expense> get viewMonthExpenses => expensesInMonth(viewMonth);
+  double get viewMonthSpent => _sum(viewMonthExpenses);
+  double get previousMonthSpent => _sum(expensesInMonth(DateTime(viewMonth.year, viewMonth.month - 1)));
+  double get viewMonthNonEssential => _sum(viewMonthExpenses.where((e) => !e.isNecessary));
+
+  /// Average per day: over days elapsed for the current month, else the
+  /// whole month.
+  double get viewMonthDailyAverage {
+    final days = isViewingCurrentMonth
+        ? DateTime.now().day
+        : DateTime(viewMonth.year, viewMonth.month + 1, 0).day;
+    return viewMonthSpent / days;
+  }
+
+  /// The viewed month's spending grouped by category, largest first.
+  List<CategorySpend> get viewMonthBreakdown {
     final byCategory = <String?, List<Expense>>{};
-    for (final e in _expensesSince(_monthStart)) {
-      byCategory.putIfAbsent(e.category?.name, () => []).add(e);
+    for (final e in viewMonthExpenses) {
+      byCategory.putIfAbsent(e.categoryId, () => []).add(e);
     }
-    final total = spentThisMonth;
-    final result = byCategory.entries.map((entry) {
-      final amount = entry.value.fold(0.0, (sum, e) => sum + e.amount);
+    final total = viewMonthSpent;
+    return byCategory.entries.map((entry) {
+      final amount = _sum(entry.value);
       return CategorySpend(
-        name: entry.key,
+        categoryId: entry.key,
+        name: entry.value.first.category?.name,
         amount: amount,
         count: entry.value.length,
         share: total > 0 ? amount / total : 0,
       );
     }).toList()
       ..sort((a, b) => b.amount.compareTo(a.amount));
-    return result;
   }
 }
 
@@ -275,6 +323,59 @@ class ExpenseController extends Notifier<ExpenseState> {
       state = state.copyWith(errorMessage: e.message);
       return false;
     }
+  }
+
+  Future<bool> updateExpense({
+    required String id,
+    required double amount,
+    String? description,
+    String? categoryId,
+    required bool isNecessary,
+    required DateTime date,
+  }) async {
+    try {
+      await _repository.updateExpense(
+        id: id,
+        amount: amount,
+        description: description,
+        categoryId: categoryId,
+        isNecessary: isNecessary,
+        date: date,
+      );
+      await loadAllData();
+      return true;
+    } on AppException catch (e) {
+      state = state.copyWith(errorMessage: e.message);
+      return false;
+    }
+  }
+
+  /// Removes the expense immediately (so a swiped row can leave the tree),
+  /// then deletes it; restores it if the delete fails.
+  Future<bool> deleteExpense(String id) async {
+    final previous = state.expenses;
+    state = state.copyWith(expenses: previous.where((e) => e.id != id).toList());
+    try {
+      await _repository.deleteExpense(id);
+      return true;
+    } on AppException catch (e) {
+      state = state.copyWith(expenses: previous, errorMessage: e.message);
+      return false;
+    }
+  }
+
+  // ── Month navigation ──
+
+  void showPreviousMonth() {
+    if (!state.canGoToPreviousMonth) return;
+    final m = state.viewMonth;
+    state = state.copyWith(selectedMonth: DateTime(m.year, m.month - 1));
+  }
+
+  void showNextMonth() {
+    if (!state.canGoToNextMonth) return;
+    final m = state.viewMonth;
+    state = state.copyWith(selectedMonth: DateTime(m.year, m.month + 1));
   }
 
   Future<bool> setBudget({

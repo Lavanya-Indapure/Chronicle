@@ -20,6 +20,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/providers/supabase_provider.dart';
 import 'package:chronicle/core/theme/app_theme.dart';
+import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/floating_nav_bar.dart';
 import 'package:chronicle/features/dashboard/domain/models/dashboard_models.dart';
 import 'package:chronicle/features/dashboard/presentation/controllers/dashboard_controller.dart';
@@ -30,6 +31,7 @@ import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 import 'package:chronicle/features/expenses/presentation/screens/expenses_screen.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/month_switcher.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
@@ -86,6 +88,17 @@ final _expenses = [
   _expense('e5', 1200, 2, _categories[4], desc: 'Online course'),
   _expense('e6', 320, 3, _categories[1]),
   _expense('e7', 90, 4, null, desc: 'Parking'),
+  // Last month, so the month switcher and "vs last month" badge have data.
+  Expense(
+    id: 'e8',
+    userId: 'u',
+    amount: 14200,
+    description: 'Last month rent',
+    categoryId: 'c1',
+    expenseDate: DateTime(DateTime.now().year, DateTime.now().month - 1, 15),
+    createdAt: DateTime(DateTime.now().year, DateTime.now().month - 1, 15),
+    category: _categories[0],
+  ),
 ];
 
 final _transactions = [
@@ -401,6 +414,34 @@ void main() {
     expect(find.text(AppStrings.weeklyBudget), findsOneWidget);
     if (_capture) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_budgets_dark.png'));
+    }
+  });
+
+  testWidgets('expenses: month switcher and expense details sheet', (tester) async {
+    await _pumpScreen(tester, screen: const ExpensesScreen(), navIndex: 2, theme: dark, size: const Size(360, 3000));
+    final now = DateTime.now();
+    final lastMonth = DateTime(now.year, now.month - 1);
+
+    // Compared with last month (which has spending in the fake data).
+    expect(find.textContaining('${AppStrings.vs} ${AppFormatters.shortMonth(lastMonth)}'), findsOneWidget);
+
+    // Step back a month, then forward again.
+    await tester.tap(find.byTooltip(AppStrings.previousMonth));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(lastMonth))), findsOneWidget);
+    expect(find.text('Last month rent'), findsOneWidget);
+    await tester.tap(find.byTooltip(AppStrings.nextMonth));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(now))), findsOneWidget);
+
+    // Tapping an expense opens its details with Edit / Delete.
+    await tester.tap(find.text('Groceries'));
+    await tester.pumpAndSettle();
+    expect(find.text(AppStrings.edit), findsOneWidget);
+    expect(find.text(AppStrings.delete), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expense_details_dark.png'));
     }
   });
 

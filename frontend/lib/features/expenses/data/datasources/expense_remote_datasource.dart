@@ -31,6 +31,10 @@ class ExpenseRemoteDatasource {
     return response;
   }
 
+  Future<void> updateExpense(String id, Map<String, dynamic> data) async {
+    await client.from('expenses').update(data).eq('id', id).eq('user_id', userId);
+  }
+
   Future<void> deleteExpense(String id) async {
     await client.from('expenses').delete().eq('id', id);
   }
