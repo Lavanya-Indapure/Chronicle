@@ -176,6 +176,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
                   label: '$_progress%',
                   onChanged: (v) => setState(() => _progress = v.toInt()),
                 ),
+                AppSpacing.gapSm,
                 DropdownButtonFormField<String>(
                   value: _status,
                   decoration: const InputDecoration(labelText: 'Status'),

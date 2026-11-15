@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/thoughts/presentation/controllers/thought_controller.dart';
 import 'package:chronicle/features/thoughts/domain/models/thought.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class AddThoughtSheet extends ConsumerStatefulWidget {
   final Thought? thought;
@@ -83,7 +84,7 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/first_times/presentation/controllers/first_time_controller.dart';
 import 'package:chronicle/features/first_times/domain/models/first_time_experience.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class FirstTimeExperiencesScreen extends ConsumerWidget {
   const FirstTimeExperiencesScreen({super.key});
@@ -117,7 +118,7 @@ class _AddFirstTimeSheetState extends State<_AddFirstTimeSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: AppSpacing.lg, right: AppSpacing.lg, top: AppSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -125,7 +126,9 @@ class _AddFirstTimeSheetState extends State<_AddFirstTimeSheet> {
           Text('Log First Experience', style: theme.textTheme.headlineSmall),
           AppSpacing.gapMd,
           TextField(controller: _titleController, decoration: const InputDecoration(labelText: 'Experience Title')),
+          AppSpacing.gapMd,
           TextField(controller: _descController, decoration: const InputDecoration(labelText: 'What happened?'), maxLines: 2),
+          AppSpacing.gapMd,
           TextField(controller: _locController, decoration: const InputDecoration(labelText: 'Location')),
           AppSpacing.gapMd,
           ListTile(

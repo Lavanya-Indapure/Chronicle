@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/learnings/presentation/controllers/learning_controller.dart';
 import 'package:chronicle/features/learnings/domain/models/learning.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class LearningsScreen extends ConsumerWidget {
   const LearningsScreen({super.key});
@@ -134,7 +135,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: AppSpacing.lg, right: AppSpacing.lg, top: AppSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -143,7 +144,9 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
           Text('New Learning', style: theme.textTheme.headlineSmall),
           AppSpacing.gapMd,
           TextField(controller: _titleController, decoration: const InputDecoration(labelText: 'What did you learn?')),
+          AppSpacing.gapMd,
           TextField(controller: _descController, decoration: const InputDecoration(labelText: 'Details (Optional)'), maxLines: 2),
+          AppSpacing.gapMd,
           TextField(controller: _sourceController, decoration: const InputDecoration(labelText: 'Source (e.g., Book, Friend)')),
           AppSpacing.gapMd,
           DropdownButtonFormField<String>(

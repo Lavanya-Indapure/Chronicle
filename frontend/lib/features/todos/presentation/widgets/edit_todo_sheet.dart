@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 /// Bottom sheet to edit a todo template.
 class EditTodoSheet extends StatefulWidget {
@@ -62,7 +63,7 @@ class _EditTodoSheetState extends State<EditTodoSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,

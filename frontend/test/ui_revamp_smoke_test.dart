@@ -34,6 +34,8 @@ import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
 import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
+import 'package:chronicle/features/learnings/presentation/controllers/learning_controller.dart';
+import 'package:chronicle/features/learnings/presentation/screens/learnings_screen.dart';
 import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
 import 'package:chronicle/features/vision_board/presentation/screens/vision_board_screen.dart';
@@ -216,6 +218,11 @@ class _FakeVisionBoardController extends VisionBoardController {
   VisionBoardState build() => VisionBoardState(goals: _visionGoals);
 }
 
+class _FakeLearningController extends LearningController {
+  @override
+  LearningState build() => const LearningState();
+}
+
 class _FakeExpenseController extends ExpenseController {
   @override
   ExpenseState build() => ExpenseState(
@@ -258,6 +265,7 @@ Future<void> _pumpScreen(
         expenseControllerProvider.overrideWith(_FakeExpenseController.new),
         todoControllerProvider.overrideWith(_FakeTodoController.new),
         visionBoardControllerProvider.overrideWith(_FakeVisionBoardController.new),
+        learningControllerProvider.overrideWith(_FakeLearningController.new),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -353,6 +361,20 @@ void main() {
     expect(find.text(AppStrings.weeklyBudget), findsOneWidget);
     if (_capture) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_budgets_dark.png'));
+    }
+  });
+
+  testWidgets('form sheet scrolls instead of overflowing when the keyboard is open', (tester) async {
+    // Small phone with the on-screen keyboard taking 300dp.
+    await _pumpScreen(tester, screen: const LearningsScreen(), navIndex: 4, theme: dark, size: const Size(360, 640));
+    tester.view.viewInsets = FakeViewPadding(bottom: 300 * tester.view.devicePixelRatio);
+    await tester.tap(find.byIcon(Icons.add).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).at(1)); // 0 = screen search box, 1 = first sheet field
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/sheet_keyboard_dark.png'));
     }
   });
 

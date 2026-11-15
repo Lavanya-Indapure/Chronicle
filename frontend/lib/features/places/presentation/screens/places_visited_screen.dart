@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/places/presentation/controllers/place_controller.dart';
 import 'package:chronicle/features/places/domain/models/place_visited.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class PlacesVisitedScreen extends ConsumerWidget {
   const PlacesVisitedScreen({super.key});
@@ -123,7 +124,7 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: AppSpacing.lg, right: AppSpacing.lg, top: AppSpacing.lg),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -131,7 +132,9 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
           Text('Log Visit', style: theme.textTheme.headlineSmall),
           AppSpacing.gapMd,
           TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Place Name')),
+          AppSpacing.gapMd,
           TextField(controller: _cityController, decoration: const InputDecoration(labelText: 'City/Region')),
+          AppSpacing.gapMd,
           TextField(controller: _descController, decoration: const InputDecoration(labelText: 'Experience Details'), maxLines: 2),
           AppSpacing.gapMd,
           ListTile(

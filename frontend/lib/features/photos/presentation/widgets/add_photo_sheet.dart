@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
+import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class AddPhotoSheet extends ConsumerStatefulWidget {
   const AddPhotoSheet({super.key});
@@ -68,7 +69,7 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Padding(
+    return KeyboardAwareSheet(
       padding: EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
