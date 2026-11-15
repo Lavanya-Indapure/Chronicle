@@ -63,6 +63,8 @@ abstract final class AppSpacing {
   static const double ringStrokeSm = 4.0;
   static const double donutSize = 220.0;
   static const double donutStroke = 14.0;
+  static const double donutSizeSm = 128.0;
+  static const double donutStrokeSm = 11.0;
   static const double chartHeight = 190.0;
   static const double statCardWidth = 168.0;
   static const double insightCardWidth = 200.0;

@@ -114,6 +114,16 @@ abstract final class AppStrings {
   static const String budgetOverPrefix = 'Over budget by';
   static const String noExpensesThisMonth = 'No expenses this month.';
   static const String debts = 'Debts';
+  static const String setBudgetCta = 'Set a budget';
+  static const String monthly = 'Monthly';
+  static const String weekly = 'Weekly';
+  static const String dailyAvgLower = 'daily avg';
+  static const String nonEssentialLower = 'non-essential';
+  static const String allCategories = 'All categories';
+  static const String whereItWent = 'Where it went';
+  static const String owedLower = 'owed to you';
+  static const String oweLower = 'you owe';
+  static const String noPendingDebts = 'All settled';
   static const String addDebt = 'Add Debt';
   static const String budgets = 'Budgets';
   static const String budget = 'Budget';

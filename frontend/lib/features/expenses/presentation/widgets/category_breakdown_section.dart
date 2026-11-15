@@ -116,7 +116,12 @@ class _CategoryTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text('${spend.count} $countLabel', style: theme.textTheme.labelSmall),
+                    Text(
+                      '${spend.count} $countLabel',
+                      style: theme.textTheme.labelSmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),

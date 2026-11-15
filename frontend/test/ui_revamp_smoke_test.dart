@@ -411,7 +411,7 @@ void main() {
     }
   }
 
-  testWidgets('expenses budgets tab renders without overflow', (tester) async {
+  testWidgets('expenses summary shows budgets, top categories and debts; all categories opens', (tester) async {
     await _pumpScreen(
       tester,
       screen: const ExpensesScreen(),
@@ -419,12 +419,21 @@ void main() {
       theme: dark,
       size: const Size(360, height),
     );
-    await tester.tap(find.text(AppStrings.budgets).last);
-    await tester.pump(const Duration(seconds: 1));
     expect(tester.takeException(), isNull);
-    expect(find.text(AppStrings.weeklyBudget), findsOneWidget);
+    // Both budget bars on the summary card (fake data sets weekly + monthly).
+    expect(find.text(AppStrings.monthly), findsOneWidget);
+    expect(find.text(AppStrings.weekly), findsOneWidget);
+    // Compact category card + one-line debts row.
+    expect(find.text(AppStrings.whereItWent), findsOneWidget);
+    expect(find.text('${AppStrings.debts} · 2'), findsOneWidget);
+
+    // "All categories" opens the full breakdown page.
+    await tester.tap(find.textContaining(AppStrings.allCategories));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Shopping'), findsWidgets);
     if (_capture) {
-      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_budgets_dark.png'));
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_all_categories_dark.png'));
     }
   });
 
