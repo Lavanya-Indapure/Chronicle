@@ -34,8 +34,39 @@ abstract final class AppSpacing {
   static const double radiusMd = 12.0;
   static const double radiusLg = 16.0;
   static const double radiusXl = 24.0;
+  static const double radiusXxl = 32.0;
+  static const double radiusPill = 999.0;
 
   static BorderRadius get borderRadiusSm => BorderRadius.circular(radiusSm);
   static BorderRadius get borderRadiusMd => BorderRadius.circular(radiusMd);
   static BorderRadius get borderRadiusLg => BorderRadius.circular(radiusLg);
+  static BorderRadius get borderRadiusXl => BorderRadius.circular(radiusXl);
+  static BorderRadius get borderRadiusXxl => BorderRadius.circular(radiusXxl);
+  static BorderRadius get borderRadiusPill => BorderRadius.circular(radiusPill);
+
+  // ── Revamped layout tokens ──
+  /// Horizontal gutter used by the rebuilt (dashboard/expenses) screens.
+  static const double gutter = 20.0;
+  static const EdgeInsets paddingGutter = EdgeInsets.symmetric(horizontal: gutter);
+
+  /// Card inner padding.
+  static const double cardPadding = 20.0;
+  static const EdgeInsets paddingCard = EdgeInsets.all(cardPadding);
+
+  // ── Component sizes ──
+  static const double iconButtonSize = 48.0; // Round header buttons
+  static const double navItemSize = 52.0; // Floating nav circles
+  static const double navBarPadding = 6.0;
+  static const double iconBadgeSize = 44.0; // Round icon holders in tiles
+  static const double avatarSize = 48.0;
+  static const double ringSizeSm = 44.0; // Small percentage rings
+  static const double ringStrokeSm = 4.0;
+  static const double donutSize = 220.0;
+  static const double donutStroke = 14.0;
+  static const double chartHeight = 190.0;
+  static const double statCardWidth = 168.0;
+  static const double insightCardWidth = 200.0;
+  static const double glanceStripHeight = 156.0;
+  static const double insightStripHeight = 150.0;
+  static const double progressBarHeight = 8.0;
 }

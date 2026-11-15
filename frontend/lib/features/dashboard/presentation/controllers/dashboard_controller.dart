@@ -25,6 +25,10 @@ class DashboardController extends Notifier<DashboardState> {
     Future.microtask(_fetchData);
   }
 
+  /// Re-fetches the current period in place (pull-to-refresh, after quick adds)
+  /// without flipping back to the full-screen loading state.
+  Future<void> refresh() => _fetchData();
+
   void setCustomRange(DateTimeRange range) {
     state = state.copyWith(filter: DashboardDateFilter.custom, customDateRange: range, isLoading: true);
     Future.microtask(_fetchData);
@@ -208,6 +212,7 @@ class DashboardController extends Notifier<DashboardState> {
 
       state = state.copyWith(
         isLoading: false,
+        clearError: true,
         expenseAnalytics: expenseAnalytics,
         todoAnalytics: todoAnalytics,
         healthAnalytics: healthAnalytics,

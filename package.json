@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "gemini-2.5-flash-chat": "^1.0.0"
+  }
+}

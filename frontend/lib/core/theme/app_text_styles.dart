@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 /// Chronicle Design System — Typography
-/// Uses Inter (Google Fonts) for a clean, modern feel.
+/// Uses Poppins (Google Fonts) for a friendly, geometric feel.
 abstract final class AppTextStyles {
-  static String? get _fontFamily => GoogleFonts.inter().fontFamily;
+  static String? get _fontFamily => GoogleFonts.poppins().fontFamily;
 
   // ── Display ──
   static TextStyle get displayLarge => TextStyle(
@@ -13,6 +13,15 @@ abstract final class AppTextStyles {
         fontWeight: FontWeight.w700,
         height: 1.2,
         letterSpacing: -0.5,
+      );
+
+  /// Large money figures on hero cards (e.g. "₹3,540").
+  static TextStyle get displayMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 36,
+        fontWeight: FontWeight.w700,
+        height: 1.15,
+        letterSpacing: -0.8,
       );
 
   // ── Headings ──
@@ -53,6 +62,13 @@ abstract final class AppTextStyles {
         height: 1.5,
       );
 
+  static TextStyle get titleSmall => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        height: 1.4,
+      );
+
   // ── Body ──
   static TextStyle get bodyLarge => TextStyle(
         fontFamily: _fontFamily,
@@ -79,6 +95,14 @@ abstract final class AppTextStyles {
   static TextStyle get labelLarge => TextStyle(
         fontFamily: _fontFamily,
         fontSize: 16,
+        fontWeight: FontWeight.w500,
+        height: 1.4,
+        letterSpacing: 0.1,
+      );
+
+  static TextStyle get labelMedium => TextStyle(
+        fontFamily: _fontFamily,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         height: 1.4,
         letterSpacing: 0.1,

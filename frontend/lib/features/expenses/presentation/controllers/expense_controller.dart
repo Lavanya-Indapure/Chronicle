@@ -9,6 +9,7 @@ import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/budget.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/features/expenses/domain/models/category.dart';
+import 'package:chronicle/features/expenses/domain/models/category_spend.dart';
 import 'package:chronicle/features/expenses/domain/repositories/expense_repository.dart';
 import 'package:chronicle/core/providers/supabase_provider.dart';
 
@@ -173,6 +174,45 @@ class ExpenseState {
   double get othersOweYou => transactions
       .where((t) => t.type == TransactionType.LEND && t.status == TransactionStatus.pending)
       .fold(0.0, (sum, t) => sum + t.amount);
+
+  List<Transaction> get pendingTransactions =>
+      transactions.where((t) => t.status == TransactionStatus.pending).toList();
+
+  static DateTime get _monthStart {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month);
+  }
+
+  static DateTime get _weekStart {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day - (now.weekday - 1));
+  }
+
+  List<Expense> _expensesSince(DateTime start) =>
+      expenses.where((e) => !e.expenseDate.isBefore(start)).toList();
+
+  double get spentThisMonth => _expensesSince(_monthStart).fold(0.0, (sum, e) => sum + e.amount);
+  double get spentThisWeek => _expensesSince(_weekStart).fold(0.0, (sum, e) => sum + e.amount);
+
+  /// This month's spending grouped by category, largest first.
+  List<CategorySpend> get monthlyCategoryBreakdown {
+    final byCategory = <String?, List<Expense>>{};
+    for (final e in _expensesSince(_monthStart)) {
+      byCategory.putIfAbsent(e.category?.name, () => []).add(e);
+    }
+    final total = spentThisMonth;
+    final result = byCategory.entries.map((entry) {
+      final amount = entry.value.fold(0.0, (sum, e) => sum + e.amount);
+      return CategorySpend(
+        name: entry.key,
+        amount: amount,
+        count: entry.value.length,
+        share: total > 0 ? amount / total : 0,
+      );
+    }).toList()
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+    return result;
+  }
 }
 
 // ── Controller (Riverpod v3 Notifier) ──

@@ -6,7 +6,7 @@ import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
 import 'package:chronicle/features/todos/presentation/widgets/todo_group_header.dart';
 import 'package:chronicle/features/todos/presentation/widgets/todo_item_tile.dart';
-import 'package:chronicle/features/todos/presentation/widgets/add_todo_sheet.dart';
+import 'package:chronicle/features/todos/presentation/widgets/todo_sheets.dart';
 import 'package:chronicle/features/todos/presentation/widgets/edit_todo_sheet.dart';
 
 class TodosScreen extends ConsumerWidget {
@@ -116,21 +116,7 @@ class TodosScreen extends ConsumerWidget {
   }
 
   void _showAddSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
-      builder: (ctx) => AddTodoSheet(
-        onSubmit: (title, description, type) =>
-            ref.read(todoControllerProvider.notifier).addTodo(
-                  title: title,
-                  description: description,
-                  recurrenceType: type,
-                ),
-      ),
-    );
+    showAddTodoSheet(context, ref);
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref, TodoTemplate template) {
