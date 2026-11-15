@@ -114,8 +114,16 @@ abstract final class AppTheme {
         selectedColor: p.textPrimary,
         side: BorderSide.none,
         shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderRadiusPill),
-        labelStyle: AppTextStyles.labelMedium.copyWith(color: p.textPrimary),
+        // Selected chips are filled with textPrimary, so their label and
+        // checkmark must flip to the background colour to stay readable.
+        labelStyle: AppTextStyles.labelMedium.copyWith(
+          color: WidgetStateColor.resolveWith(
+            (states) => states.contains(WidgetState.selected) ? p.background : p.textPrimary,
+          ),
+        ),
         secondaryLabelStyle: AppTextStyles.labelMedium.copyWith(color: p.background),
+        checkmarkColor: p.background,
+        iconTheme: IconThemeData(color: p.textPrimary, size: AppSpacing.md + 2),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
       ),
       dividerTheme: DividerThemeData(color: p.border, thickness: 1),

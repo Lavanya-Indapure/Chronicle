@@ -1,74 +1,116 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'package:go_router/go_router.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/widgets/icon_badge.dart';
+import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
 import 'package:chronicle/features/vision_board/presentation/widgets/add_goal_sheet.dart';
-import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
+import 'package:chronicle/features/vision_board/presentation/widgets/vision_goal_card.dart';
 
 class VisionBoardScreen extends ConsumerWidget {
   const VisionBoardScreen({super.key});
 
+  /// Status filter values; null = all.
+  static const List<String?> _statuses = [null, 'in_progress', 'completed'];
+
+  static String _statusLabel(String? s) => switch (s) {
+        'in_progress' => AppStrings.statusInProgress,
+        'completed' => AppStrings.statusCompleted,
+        _ => AppStrings.statusAll,
+      };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(visionBoardControllerProvider);
-    final theme = Theme.of(context);
+    final controller = ref.read(visionBoardControllerProvider.notifier);
     final goals = state.filteredGoals;
+    final hasAnyGoal = state.goals.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vision Board'),
+        title: const Text(AppStrings.visionBoardLabel),
         actions: [
           IconButton(
-            icon: Icon(state.onlyFavorites ? Icons.favorite : Icons.favorite_border, color: state.onlyFavorites ? Colors.red : null),
-            onPressed: () => ref.read(visionBoardControllerProvider.notifier).toggleOnlyFavorites(),
+            tooltip: AppStrings.favoritesOnly,
+            isSelected: state.onlyFavorites,
+            icon: const Icon(Icons.favorite_border_rounded),
+            selectedIcon: const Icon(Icons.favorite_rounded, color: AppColors.error),
+            onPressed: controller.toggleOnlyFavorites,
           ),
           PopupMenuButton<VisionSort>(
-            icon: const Icon(Icons.sort),
-            onSelected: (sort) => ref.read(visionBoardControllerProvider.notifier).setSortBy(sort),
+            tooltip: AppStrings.sortBy,
+            icon: const Icon(Icons.sort_rounded),
+            onSelected: controller.setSortBy,
             itemBuilder: (context) => [
-              const PopupMenuItem(value: VisionSort.recency, child: Text('Recently Updated')),
-              const PopupMenuItem(value: VisionSort.deadline, child: Text('Closest Deadline')),
-              const PopupMenuItem(value: VisionSort.progress, child: Text('Highest Progress')),
+              for (final (sort, label) in const [
+                (VisionSort.recency, AppStrings.sortRecency),
+                (VisionSort.deadline, AppStrings.sortDeadline),
+                (VisionSort.progress, AppStrings.sortProgress),
+              ])
+                CheckedPopupMenuItem(value: sort, checked: state.sortBy == sort, child: Text(label)),
             ],
           ),
+          AppSpacing.hGapXs,
         ],
       ),
       body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: SearchBar(
-              hintText: 'Search goals or categories...',
-              leading: const Icon(Icons.search),
-              onChanged: (value) => ref.read(visionBoardControllerProvider.notifier).setSearchQuery(value),
-              elevation: WidgetStateProperty.all(0),
-              backgroundColor: WidgetStateProperty.all(theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, AppSpacing.md),
+            child: TextField(
+              onChanged: controller.setSearchQuery,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: AppStrings.searchGoalsHint,
+                prefixIcon: const Icon(Icons.search_rounded),
+                border: OutlineInputBorder(borderRadius: AppSpacing.borderRadiusPill, borderSide: BorderSide.none),
+                enabledBorder: OutlineInputBorder(borderRadius: AppSpacing.borderRadiusPill, borderSide: BorderSide.none),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: AppSpacing.borderRadiusPill,
+                  borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
+                ),
+              ),
             ),
           ),
-          _FiltersRow(),
+          Padding(
+            padding: AppSpacing.paddingGutter,
+            child: PillTabs<String?>(
+              values: _statuses,
+              labelOf: _statusLabel,
+              selected: state.statusFilter,
+              onChanged: controller.setStatusFilter,
+            ),
+          ),
           Expanded(
-            child: state.isLoading && state.goals.isEmpty
+            child: state.isLoading && !hasAnyGoal
                 ? const Center(child: CircularProgressIndicator())
                 : goals.isEmpty
-                    ? _EmptyVision()
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(AppSpacing.md),
+                    ? _EmptyVision(isFiltered: hasAnyGoal, onAdd: () => _showAddGoal(context))
+                    : ListView.separated(
+                        // Bottom padding keeps the last card clear of the FAB.
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.gutter,
+                          AppSpacing.lg,
+                          AppSpacing.gutter,
+                          AppSpacing.xxxl + AppSpacing.xl,
+                        ),
                         itemCount: goals.length,
-                        itemBuilder: (context, index) {
-                          final g = goals[index];
-                          return _GoalCard(goal: g);
-                        },
+                        separatorBuilder: (_, _) => AppSpacing.gapMd,
+                        itemBuilder: (context, index) => VisionGoalCard(goal: goals[index]),
                       ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddGoal(context),
-        label: const Text('New Goal'),
-        icon: const Icon(Icons.track_changes),
-      ),
+      floatingActionButton: hasAnyGoal
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddGoal(context),
+              label: const Text(AppStrings.newGoal),
+              icon: const Icon(Icons.add_rounded),
+            )
+          : null,
     );
   }
 
@@ -76,167 +118,58 @@ class VisionBoardScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusLg)),
-      ),
       builder: (ctx) => const AddGoalSheet(),
     );
   }
 }
 
-class _FiltersRow extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(visionBoardControllerProvider);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Row(
-        children: [
-          FilterChip(
-            label: const Text('All Status'),
-            selected: state.statusFilter == null,
-            onSelected: (_) => ref.read(visionBoardControllerProvider.notifier).setStatusFilter(null),
-          ),
-          AppSpacing.gapSm,
-          FilterChip(
-            label: const Text('In Progress'),
-            selected: state.statusFilter == 'in_progress',
-            onSelected: (_) => ref.read(visionBoardControllerProvider.notifier).setStatusFilter('in_progress'),
-          ),
-          AppSpacing.gapSm,
-          FilterChip(
-            label: const Text('Completed'),
-            selected: state.statusFilter == 'completed',
-            onSelected: (_) => ref.read(visionBoardControllerProvider.notifier).setStatusFilter('completed'),
-          ),
-        ],
-      ),
-    );
-  }
-}
+/// Empty board (with a call to action) or "no matches" when filters hide
+/// every goal.
+class _EmptyVision extends StatelessWidget {
+  final bool isFiltered;
+  final VoidCallback onAdd;
 
-class _GoalCard extends ConsumerWidget {
-  final VisionGoal goal;
-
-  const _GoalCard({required this.goal});
+  const _EmptyVision({required this.isFiltered, required this.onAdd});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isCompleted = goal.status == 'completed';
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.md),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        side: BorderSide(color: isCompleted ? Colors.green.withValues(alpha: 0.5) : theme.colorScheme.outlineVariant),
-      ),
-      child: InkWell(
-        onTap: () => context.push('/more/vision-board/details', extra: goal),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (goal.category != null)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(goal.category!.toUpperCase(), style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-                    ),
-                  const Spacer(),
-                  if (goal.isFavorite) const Icon(Icons.favorite, color: Colors.red, size: 16),
-                ],
-              ),
-              AppSpacing.gapSm,
-              Text(goal.title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-              if (goal.description != null) ...[
-                AppSpacing.gapXs,
-                Text(goal.description!, style: theme.textTheme.bodySmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-              AppSpacing.gapMd,
-              Row(
-                children: [
-                  Expanded(
-                    child: LinearProgressIndicator(
-                      value: goal.progress / 100,
-                      backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(4),
-                      minHeight: 8,
-                    ),
-                  ),
-                  AppSpacing.gapMd,
-                  Text('${goal.progress}%', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              AppSpacing.gapMd,
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_month_outlined, size: 14, color: theme.disabledColor),
-                      AppSpacing.gapXs,
-                      Text(
-                        goal.targetDate != null ? DateFormat('MMM yyyy').format(goal.targetDate!) : 'No deadline',
-                        style: theme.textTheme.bodySmall?.copyWith(color: theme.disabledColor),
-                      ),
-                    ],
-                  ),
-                  _StatusLabel(status: goal.status),
-                ],
+    final colors = theme.colorScheme;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconBadge(
+              icon: isFiltered ? Icons.search_off_rounded : Icons.auto_awesome_rounded,
+              color: isFiltered ? colors.surfaceContainerHigh : colors.primaryContainer,
+              onColor: isFiltered ? colors.onSurfaceVariant : colors.onPrimaryContainer,
+              filled: true,
+              size: AppSpacing.xxxl,
+            ),
+            AppSpacing.gapLg,
+            Text(
+              isFiltered ? AppStrings.visionNoMatchesTitle : AppStrings.visionEmptyTitle,
+              style: theme.textTheme.titleLarge,
+              textAlign: TextAlign.center,
+            ),
+            AppSpacing.gapXs,
+            Text(
+              isFiltered ? AppStrings.visionNoMatchesMessage : AppStrings.visionEmptyMessage,
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+            if (!isFiltered) ...[
+              AppSpacing.gapLg,
+              FilledButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text(AppStrings.addFirstGoal),
               ),
             ],
-          ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-class _StatusLabel extends StatelessWidget {
-  final String status;
-  const _StatusLabel({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color color;
-    String label;
-    switch (status) {
-      case 'completed': color = Colors.green; label = 'COMPLETED'; break;
-      case 'in_progress': color = Colors.orange; label = 'IN PROGRESS'; break;
-      default: color = Colors.grey; label = 'NOT STARTED';
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color)),
-    );
-  }
-}
-
-class _EmptyVision extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.auto_awesome_mosaic_outlined, size: 64, color: theme.disabledColor),
-          AppSpacing.gapMd,
-          Text('Your Vision Board is empty', style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor)),
-          AppSpacing.gapSm,
-          const Text('Define your goals and manifest your future!'),
-        ],
       ),
     );
   }

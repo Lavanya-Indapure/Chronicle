@@ -170,6 +170,25 @@ abstract final class AppStrings {
   static const String placesVisitedLabel = 'Places Visited';
   static const String miscellaneousLabel = 'Miscellaneous';
 
+  // ── Vision Board ──
+  static const String searchGoalsHint = 'Search goals or categories…';
+  static const String statusAll = 'All';
+  static const String statusInProgress = 'In Progress';
+  static const String statusCompleted = 'Completed';
+  static const String statusNotStarted = 'Not Started';
+  static const String newGoal = 'New Goal';
+  static const String favoritesOnly = 'Favourites only';
+  static const String sortBy = 'Sort';
+  static const String sortRecency = 'Recently Updated';
+  static const String sortDeadline = 'Closest Deadline';
+  static const String sortProgress = 'Highest Progress';
+  static const String noDeadline = 'No deadline';
+  static const String visionEmptyTitle = 'Your vision board is empty';
+  static const String visionEmptyMessage = 'Define your goals and manifest your future!';
+  static const String visionNoMatchesTitle = 'No goals match';
+  static const String visionNoMatchesMessage = 'Try a different search or filter.';
+  static const String addFirstGoal = 'Add your first goal';
+
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';
   static const String invalidEmail = 'Please enter a valid email';

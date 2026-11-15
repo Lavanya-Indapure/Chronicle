@@ -34,6 +34,9 @@ import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
 import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
+import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
+import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
+import 'package:chronicle/features/vision_board/presentation/screens/vision_board_screen.dart';
 
 const _capture = bool.fromEnvironment('CAPTURE');
 const _fontDir = String.fromEnvironment('FONT_DIR');
@@ -189,6 +192,30 @@ class _FakeTodoController extends TodoController {
   Future<void> loadTodayTodos({bool silent = false}) async {}
 }
 
+VisionGoal _goal(String id, String title, String status, int progress, {String? category, bool fav = false}) =>
+    VisionGoal(
+      id: id,
+      userId: 'u',
+      title: title,
+      description: 'A short description of why this goal matters to me.',
+      category: category,
+      duration: '1y',
+      targetDate: DateTime(2027, 6),
+      progress: progress,
+      status: status,
+      isFavorite: fav,
+      createdAt: _daysAgo(3),
+      updatedAt: _daysAgo(1),
+    );
+
+/// Vision board goals for the current test; empty list = empty board.
+List<VisionGoal> _visionGoals = [];
+
+class _FakeVisionBoardController extends VisionBoardController {
+  @override
+  VisionBoardState build() => VisionBoardState(goals: _visionGoals);
+}
+
 class _FakeExpenseController extends ExpenseController {
   @override
   ExpenseState build() => ExpenseState(
@@ -230,6 +257,7 @@ Future<void> _pumpScreen(
         dashboardControllerProvider.overrideWith(_FakeDashboardController.new),
         expenseControllerProvider.overrideWith(_FakeExpenseController.new),
         todoControllerProvider.overrideWith(_FakeTodoController.new),
+        visionBoardControllerProvider.overrideWith(_FakeVisionBoardController.new),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -325,6 +353,37 @@ void main() {
     expect(find.text(AppStrings.weeklyBudget), findsOneWidget);
     if (_capture) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/expenses_budgets_dark.png'));
+    }
+  });
+
+  group('vision board', () {
+    tearDown(() => _visionGoals = []);
+
+    for (final MapEntry(key: themeName, value: theme) in themes.entries) {
+      testWidgets('empty board shows call to action ($themeName)', (tester) async {
+        _visionGoals = [];
+        await _pumpScreen(tester, screen: const VisionBoardScreen(), navIndex: 4, theme: theme, size: const Size(360, 800));
+        expect(tester.takeException(), isNull);
+        expect(find.text(AppStrings.addFirstGoal), findsOneWidget);
+        if (_capture) {
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/vision_empty_$themeName.png'));
+        }
+      });
+
+      testWidgets('goal list renders without overflow ($themeName)', (tester) async {
+        _visionGoals = [
+          _goal('1', 'Run a half marathon', 'in_progress', 45, category: 'Health', fav: true),
+          _goal('2', 'Read 24 books this year', 'not_started', 0, category: 'Learning'),
+          _goal('3', 'Build an emergency fund of six months of expenses', 'completed', 100, category: 'Finance'),
+        ];
+        await _pumpScreen(tester, screen: const VisionBoardScreen(), navIndex: 4, theme: theme, size: const Size(360, 1100));
+        expect(tester.takeException(), isNull);
+        // The selected "All" pill must be visible text, not blank.
+        expect(find.text(AppStrings.statusAll), findsOneWidget);
+        if (_capture) {
+          await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/vision_goals_$themeName.png'));
+        }
+      });
     }
   });
 }
