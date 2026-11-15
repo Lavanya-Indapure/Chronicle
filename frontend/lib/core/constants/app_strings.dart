@@ -101,6 +101,10 @@ abstract final class AppStrings {
   static const String category = 'Category';
   static const String previousMonth = 'Previous month';
   static const String nextMonth = 'Next month';
+  static const String pickMonth = 'Choose month';
+  static const String previousYear = 'Previous year';
+  static const String nextYear = 'Next year';
+  static const String thisMonthShortcut = 'This month';
   static const String spentIn = 'Spent in';
   static const String vs = 'vs';
   static const String sameAsLastMonth = 'Same as';

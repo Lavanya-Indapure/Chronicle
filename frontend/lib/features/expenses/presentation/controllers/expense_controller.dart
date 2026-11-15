@@ -216,8 +216,8 @@ class ExpenseState {
     return DateTime(first.year, first.month);
   }
 
-  bool get canGoToPreviousMonth => viewMonth.isAfter(earliestMonth);
-  bool get canGoToNextMonth => viewMonth.isBefore(_monthStart);
+  /// Latest selectable month — the current one.
+  DateTime get latestMonth => _monthStart;
 
   /// Expenses dated within [month] (first day of month), newest first.
   List<Expense> expensesInMonth(DateTime month) {
@@ -366,16 +366,13 @@ class ExpenseController extends Notifier<ExpenseState> {
 
   // ── Month navigation ──
 
-  void showPreviousMonth() {
-    if (!state.canGoToPreviousMonth) return;
-    final m = state.viewMonth;
-    state = state.copyWith(selectedMonth: DateTime(m.year, m.month - 1));
-  }
-
-  void showNextMonth() {
-    if (!state.canGoToNextMonth) return;
-    final m = state.viewMonth;
-    state = state.copyWith(selectedMonth: DateTime(m.year, m.month + 1));
+  /// Jumps straight to [month], clamped to the range that has data.
+  void showMonth(DateTime month) {
+    var target = DateTime(month.year, month.month);
+    final current = DateTime(DateTime.now().year, DateTime.now().month);
+    if (target.isAfter(current)) target = current;
+    if (target.isBefore(state.earliestMonth)) target = state.earliestMonth;
+    state = state.copyWith(selectedMonth: target);
   }
 
   Future<bool> setBudget({

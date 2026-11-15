@@ -99,6 +99,17 @@ final _expenses = [
     createdAt: DateTime(DateTime.now().year, DateTime.now().month - 1, 15),
     category: _categories[0],
   ),
+  // Well in the past, to exercise the month picker's year stepper.
+  Expense(
+    id: 'e9',
+    userId: 'u',
+    amount: 900,
+    description: 'Old concert tickets',
+    categoryId: 'c4',
+    expenseDate: DateTime(DateTime.now().year - 1, 3, 10),
+    createdAt: DateTime(DateTime.now().year - 1, 3, 10),
+    category: _categories[3],
+  ),
 ];
 
 final _transactions = [
@@ -431,6 +442,27 @@ void main() {
     expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(lastMonth))), findsOneWidget);
     expect(find.text('Last month rent'), findsOneWidget);
     await tester.tap(find.byTooltip(AppStrings.nextMonth));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(now))), findsOneWidget);
+
+    // Tapping the month opens the picker: jump to March last year in 3 taps.
+    final march = DateTime(now.year - 1, 3);
+    await tester.tap(find.byTooltip(AppStrings.pickMonth));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip(AppStrings.previousYear));
+    await tester.pumpAndSettle();
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/month_picker_dark.png'));
+    }
+    await tester.tap(find.text(AppFormatters.shortMonth(march)));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(march))), findsOneWidget);
+    expect(find.text('Old concert tickets'), findsOneWidget);
+
+    // "This month" shortcut jumps back.
+    await tester.tap(find.byTooltip(AppStrings.pickMonth));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(AppStrings.thisMonthShortcut));
     await tester.pumpAndSettle();
     expect(find.descendant(of: find.byType(MonthSwitcher), matching: find.text(AppFormatters.monthYear(now))), findsOneWidget);
 

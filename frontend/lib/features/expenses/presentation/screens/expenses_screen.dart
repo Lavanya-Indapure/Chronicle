@@ -118,8 +118,9 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     AppSpacing.gapMd,
                     MonthSwitcher(
                       month: state.viewMonth,
-                      onPrevious: state.canGoToPreviousMonth ? _controller.showPreviousMonth : null,
-                      onNext: state.canGoToNextMonth ? _controller.showNextMonth : null,
+                      firstMonth: state.earliestMonth,
+                      lastMonth: state.latestMonth,
+                      onMonthSelected: _controller.showMonth,
                     ),
                     AppSpacing.gapMd,
                     _MonthSummary(state: state),
