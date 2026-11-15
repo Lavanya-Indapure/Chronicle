@@ -189,6 +189,15 @@ abstract final class AppStrings {
   static const String visionNoMatchesMessage = 'Try a different search or filter.';
   static const String addFirstGoal = 'Add your first goal';
 
+  // ── Restaurants ──
+  static const String visitSingular = 'visit';
+  static const String visitPlural = 'visits';
+  static const String address = 'Address';
+  static const String visitHistory = 'Visit History';
+  static const String noVisitsYet = 'No visits logged yet.';
+  static const String visitedAgain = 'Visited Again';
+  static const String favorite = 'Favourite';
+
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';
   static const String invalidEmail = 'Please enter a valid email';

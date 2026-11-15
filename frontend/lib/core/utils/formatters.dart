@@ -33,6 +33,9 @@ abstract final class AppFormatters {
   /// 15 Nov
   static String dayMonth(DateTime date) => DateFormat('d MMM').format(date);
 
+  /// 22 Mar 2026
+  static String dayMonthYear(DateTime date) => DateFormat('d MMM yyyy').format(date);
+
   /// Saturday, 15 Nov
   static String weekdayDayMonth(DateTime date) => DateFormat('EEEE, d MMM').format(date);
 

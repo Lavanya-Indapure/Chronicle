@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:chronicle/core/constants/app_constants.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/widgets/storage_image.dart';
 import 'package:chronicle/features/restaurants/presentation/controllers/restaurant_controller.dart';
 import 'package:chronicle/features/restaurants/presentation/widgets/add_restaurant_sheet.dart';
 import 'package:chronicle/features/restaurants/domain/models/restaurant.dart';
@@ -112,7 +114,7 @@ class _RestaurantCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final firstPhoto = restaurant.photos.isNotEmpty ? restaurant.photos.first.imageUrl : null;
+    final firstPhoto = restaurant.photos.isNotEmpty ? restaurant.photos.first.storagePath : null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
@@ -128,7 +130,7 @@ class _RestaurantCard extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             if (firstPhoto != null)
-              Image.network(firstPhoto, height: 160, fit: BoxFit.cover)
+              StorageImage(bucket: AppConstants.restaurantsBucket, path: firstPhoto, height: 160)
             else
               Container(
                 height: 100,

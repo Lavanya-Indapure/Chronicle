@@ -34,6 +34,10 @@ import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/presentation/controllers/todo_controller.dart';
 import 'package:chronicle/features/todos/presentation/screens/todos_screen.dart';
+import 'package:chronicle/core/providers/signed_url_provider.dart';
+import 'package:chronicle/features/restaurants/domain/models/restaurant.dart';
+import 'package:chronicle/features/restaurants/presentation/controllers/restaurant_controller.dart';
+import 'package:chronicle/features/restaurants/presentation/screens/restaurant_details_screen.dart';
 import 'package:chronicle/features/learnings/presentation/controllers/learning_controller.dart';
 import 'package:chronicle/features/learnings/presentation/screens/learnings_screen.dart';
 import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
@@ -218,6 +222,39 @@ class _FakeVisionBoardController extends VisionBoardController {
   VisionBoardState build() => VisionBoardState(goals: _visionGoals);
 }
 
+final _restaurant = Restaurant(
+  id: 'r1',
+  userId: 'u',
+  name: 'Toit Brewpub',
+  address: '298, 100 Feet Road, Indiranagar',
+  visitCount: 1,
+  isFavorite: false,
+  rating: 3,
+  createdAt: _daysAgo(10),
+  updatedAt: _daysAgo(10),
+);
+
+class _FakeRestaurantController extends RestaurantController {
+  @override
+  RestaurantState build() => RestaurantState(restaurants: [_restaurant]);
+
+  @override
+  Future<List<RestaurantVisit>> getVisitHistory(String id) async => [
+        RestaurantVisit(
+          id: 'v1',
+          restaurantId: id,
+          visitDate: _daysAgo(2),
+          billAmount: 689,
+          foodItems: 'Paneer tikka, mocktail',
+          rating: 3,
+          notes: 'Great music, slow service.',
+          photos: const [
+            RestaurantPhoto(id: 'p1', restaurantId: 'r1', storagePath: 'u/missing.jpg', imageUrl: 'unused'),
+          ],
+        ),
+      ];
+}
+
 class _FakeLearningController extends LearningController {
   @override
   LearningState build() => const LearningState();
@@ -266,6 +303,9 @@ Future<void> _pumpScreen(
         todoControllerProvider.overrideWith(_FakeTodoController.new),
         visionBoardControllerProvider.overrideWith(_FakeVisionBoardController.new),
         learningControllerProvider.overrideWith(_FakeLearningController.new),
+        restaurantControllerProvider.overrideWith(_FakeRestaurantController.new),
+        // Simulate storage refusing the file (e.g. missing read permission).
+        signedUrlProvider.overrideWith((ref, object) => Future<String>.error(Exception('Object not found'))),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -375,6 +415,23 @@ void main() {
     expect(tester.takeException(), isNull);
     if (_capture) {
       await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/sheet_keyboard_dark.png'));
+    }
+  });
+
+  testWidgets('restaurant details shows a placeholder when a photo cannot load', (tester) async {
+    await _pumpScreen(
+      tester,
+      screen: RestaurantDetailsScreen(restaurant: _restaurant),
+      navIndex: 4,
+      theme: dark,
+      size: const Size(360, 800),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('1 ${AppStrings.visitSingular}'), findsOneWidget);
+    expect(find.byIcon(Icons.broken_image_outlined), findsOneWidget);
+    if (_capture) {
+      await expectLater(find.byType(MaterialApp), matchesGoldenFile('goldens/restaurant_details_dark.png'));
     }
   });
 

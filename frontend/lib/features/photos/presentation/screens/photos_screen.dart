@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:chronicle/core/constants/app_constants.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/widgets/storage_image.dart';
 import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
 import 'package:chronicle/features/photos/presentation/widgets/add_photo_sheet.dart';
 import 'package:chronicle/features/photos/domain/models/photo.dart';
@@ -72,21 +74,7 @@ class _PhotoThumbnail extends StatelessWidget {
         tag: photo.id,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          child: Image.network(
-            photo.imageUrl,
-            fit: BoxFit.cover,
-            loadingBuilder: (context, child, loadingProgress) {
-              if (loadingProgress == null) return child;
-              return Container(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))),
-              );
-            },
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: const Icon(Icons.broken_image),
-            ),
-          ),
+          child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath),
         ),
       ),
     );
@@ -146,7 +134,7 @@ class _PhotoDetailView extends StatelessWidget {
             child: InteractiveViewer(
               child: Hero(
                 tag: photo.id,
-                child: Image.network(photo.imageUrl, fit: BoxFit.contain),
+                child: StorageImage(bucket: AppConstants.photosBucket, path: photo.storagePath, fit: BoxFit.contain),
               ),
             ),
           ),

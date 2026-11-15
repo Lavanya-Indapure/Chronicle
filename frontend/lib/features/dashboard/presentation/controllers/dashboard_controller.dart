@@ -10,7 +10,9 @@ import 'package:chronicle/features/moods/presentation/controllers/mood_controlle
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/health/domain/models/health_models.dart';
-import 'package:collection/collection.dart'; // For groupBy
+import 'package:chronicle/features/learnings/domain/models/learning.dart';
+import 'package:chronicle/features/places/domain/models/place_visited.dart';
+import 'package:chronicle/features/moods/domain/models/mood_entry.dart';
 
 class DashboardController extends Notifier<DashboardState> {
   @override
@@ -65,9 +67,10 @@ class DashboardController extends Notifier<DashboardState> {
       final expenses = results[0] as List<Expense>;
       final todos = results[1] as List<TodoInstance>;
       final hydrationLogs = results[2] as List<HydrationReminder>;
-      final allLearnings = results[3] as List;
-      final allPlaces = results[4] as List;
-      final allMoods = results[5] as List;
+      // Typed (not raw `List`) so field typos are compile errors, not runtime crashes.
+      final allLearnings = results[3] as List<Learning>;
+      final allPlaces = results[4] as List<PlaceVisited>;
+      final allMoods = results[5] as List<MoodEntry>;
 
       // --- Analytics Generation ---
       
@@ -188,8 +191,8 @@ class DashboardController extends Notifier<DashboardState> {
       );
 
       // 4. Activity Summary (filter in memory)
-      final newLearnings = allLearnings.where((l) => _isWithinRange(l.createdAt, start, end)).length;
-      final placesVisited = allPlaces.where((p) => _isWithinRange(p.visitDate ?? DateTime.now(), start, end)).length;
+      final newLearnings = allLearnings.where((l) => _isWithinRange(l.logDate, start, end)).length;
+      final placesVisited = allPlaces.where((p) => _isWithinRange(p.visitDate, start, end)).length;
       final moodsLogged = allMoods.where((m) => _isWithinRange(m.logDate, start, end)).length;
 
       final activitySummary = ActivitySummary(

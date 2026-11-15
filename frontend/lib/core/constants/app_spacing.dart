@@ -73,4 +73,5 @@ abstract final class AppSpacing {
   static const double ringStrokeLg = 7.0;
   static const double checkCircleSize = 26.0; // Todo check circles
   static const double accentDotSize = 8.0;
+  static const double visitPhotoSize = 72.0;
 }
