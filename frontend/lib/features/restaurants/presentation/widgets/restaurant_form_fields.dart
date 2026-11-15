@@ -6,6 +6,17 @@ import 'package:chronicle/core/theme/app_colors.dart';
 
 /// Form pieces shared by the Add Restaurant and Log Visit sheets.
 
+/// Picked photos as one draft value. Paths are joined into a single String
+/// (not a List) so the draft mixin's shallow equality check can tell
+/// "unchanged" from "changed".
+String encodePhotoPaths(List<File> photos) => photos.map((f) => f.path).join('\n');
+
+/// Inverse of [encodePhotoPaths]; skips files that no longer exist (e.g. the
+/// picker's temp copy was cleaned up).
+List<File> decodePhotoPaths(String? encoded) => (encoded == null || encoded.isEmpty)
+    ? <File>[]
+    : encoded.split('\n').map(File.new).where((f) => f.existsSync()).toList();
+
 /// "Rating ............ ★ 3.5" with a 1–5 slider in half steps.
 class RatingField extends StatelessWidget {
   final String label;

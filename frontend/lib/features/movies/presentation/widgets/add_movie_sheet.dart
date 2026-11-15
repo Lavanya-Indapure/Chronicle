@@ -4,6 +4,8 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/core/widgets/star_rating.dart';
@@ -21,7 +23,7 @@ class AddMovieSheet extends ConsumerStatefulWidget {
   ConsumerState<AddMovieSheet> createState() => _AddMovieSheetState();
 }
 
-class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
+class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMixin<AddMovieSheet> {
   final _formKey = GlobalKey<FormState>();
   late final _nameController = TextEditingController(text: widget.movie?.name);
   late final _costController = TextEditingController(text: _formatCost(widget.movie?.cost));
@@ -41,6 +43,40 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
       v == null ? null : (v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString());
 
   static String? _orNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
+
+  // ── Draft ──
+  @override
+  String get draftKey => _isEditing ? 'movie:edit:${widget.movie!.id}' : 'movie:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'name': _nameController.text,
+        'cost': _costController.text,
+        'comments': _commentsController.text,
+        'takeaways': _takeawaysController.text,
+        'watchDate': _watchDate,
+        'platform': _platform,
+        'rating': _rating,
+      };
+
+  /// Missing keys fall back to the movie being edited (or blank for new).
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    final m = widget.movie;
+    _nameController.text = draft['name'] as String? ?? m?.name ?? '';
+    _costController.text = draft['cost'] as String? ?? _formatCost(m?.cost) ?? '';
+    _commentsController.text = draft['comments'] as String? ?? m?.comments ?? '';
+    _takeawaysController.text = draft['takeaways'] as String? ?? m?.takeaways ?? '';
+    _watchDate = draft['watchDate'] as DateTime? ?? m?.watchDate ?? DateTime.now();
+    _platform = draft['platform'] as String? ?? m?.platform ?? MoviePlatform.digital;
+    _rating = draft['rating'] as int? ?? m?.rating ?? 3;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -78,6 +114,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
     );
     final controller = ref.read(movieControllerProvider.notifier);
     final ok = _isEditing ? await controller.updateMovie(widget.movie!.id, movie) : await controller.createMovie(movie);
+    if (ok) markSubmitted();
 
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -104,6 +141,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
 
     setState(() => _isSubmitting = true);
     final ok = await ref.read(movieControllerProvider.notifier).deleteMovie(widget.movie!.id);
+    if (ok) markSubmitted();
     if (!mounted) return;
     setState(() => _isSubmitting = false);
     if (ok) Navigator.pop(context);
@@ -139,9 +177,13 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> {
               ],
             ),
             AppSpacing.gapMd,
+            if (draftRestored) ...[
+              DraftRestoredBanner(onDiscard: discardDraft),
+              AppSpacing.gapMd,
+            ],
             TextFormField(
               controller: _nameController,
-              autofocus: !_isEditing,
+              autofocus: !_isEditing && !draftRestored,
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: AppStrings.movieName, prefixIcon: Icon(Icons.movie_outlined)),
               validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.movieNameRequired : null,

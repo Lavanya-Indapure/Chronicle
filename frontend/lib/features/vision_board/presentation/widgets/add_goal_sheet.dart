@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
 import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 
@@ -13,7 +15,7 @@ class AddGoalSheet extends ConsumerStatefulWidget {
   ConsumerState<AddGoalSheet> createState() => _AddGoalSheetState();
 }
 
-class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
+class _AddGoalSheetState extends ConsumerState<AddGoalSheet> with DraftFormMixin<AddGoalSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
@@ -36,6 +38,41 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
     {'value': '5y', 'label': '5 Years'},
   ];
 
+  /// The form's starting values (new goal defaults or the goal being edited);
+  /// draft keys that are missing fall back to these.
+  Map<String, Object?> _startValues = const {};
+
+  // ── Draft ──
+  @override
+  String get draftKey => widget.goal == null ? 'goal:new' : 'goal:edit:${widget.goal!.id}';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'title': _titleController.text,
+        'description': _descController.text,
+        'category': _categoryController.text,
+        'plan': _planController.text,
+        'duration': _duration,
+        'targetDate': _targetDate,
+        'progress': _progress,
+        'status': _status,
+        'isFavorite': _isFavorite,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    final v = {..._startValues, ...draft};
+    _titleController.text = v['title'] as String? ?? '';
+    _descController.text = v['description'] as String? ?? '';
+    _categoryController.text = v['category'] as String? ?? '';
+    _planController.text = v['plan'] as String? ?? '';
+    _duration = v['duration'] as String? ?? '6m';
+    _targetDate = v['targetDate'] as DateTime?;
+    _progress = v['progress'] as int? ?? 0;
+    _status = v['status'] as String? ?? 'not_started';
+    _isFavorite = v['isFavorite'] as bool? ?? false;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +89,8 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
     } else {
       _calculateTargetDate();
     }
+    _startValues = captureDraft();
+    initDraft();
   }
 
   void _calculateTargetDate() {
@@ -95,6 +134,11 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
       } else {
         await ref.read(visionBoardControllerProvider.notifier).updateGoal(widget.goal!.id, goal);
       }
+      // The controller reports failures via errorMessage (it doesn't throw);
+      // on failure keep the sheet open so the input isn't lost.
+      final failed = ref.read(visionBoardControllerProvider).errorMessage != null;
+      if (failed) return;
+      markSubmitted();
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -121,6 +165,10 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
             children: [
               Text(widget.goal == null ? 'Set New Goal' : 'Edit Manifestation', style: theme.textTheme.titleLarge),
               AppSpacing.gapLg,
+              if (draftRestored) ...[
+                DraftRestoredBanner(onDiscard: discardDraft),
+                AppSpacing.gapMd,
+              ],
               TextFormField(
                 controller: _titleController,
                 decoration: const InputDecoration(labelText: 'Goal Title', prefixIcon: Icon(Icons.stars_outlined)),
@@ -144,6 +192,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
                   AppSpacing.gapMd,
                   Expanded(
                     child: DropdownButtonFormField<String>(
+                      isExpanded: true, // ellipsize long labels instead of overflowing
                       value: _duration,
                       decoration: const InputDecoration(labelText: 'Timeline'),
                       items: _durationOptions.map((opt) => DropdownMenuItem(value: opt['value'], child: Text(opt['label']!))).toList(),
@@ -178,6 +227,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> {
                 ),
                 AppSpacing.gapSm,
                 DropdownButtonFormField<String>(
+                    isExpanded: true, // ellipsize long labels instead of overflowing
                   value: _status,
                   decoration: const InputDecoration(labelText: 'Status'),
                   items: const [

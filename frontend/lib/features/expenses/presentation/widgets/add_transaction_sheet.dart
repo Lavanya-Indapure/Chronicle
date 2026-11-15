@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 
 class AddTransactionSheet extends StatefulWidget {
@@ -18,13 +20,39 @@ class AddTransactionSheet extends StatefulWidget {
   State<AddTransactionSheet> createState() => _AddTransactionSheetState();
 }
 
-class _AddTransactionSheetState extends State<AddTransactionSheet> {
+class _AddTransactionSheetState extends State<AddTransactionSheet> with DraftFormMixin<AddTransactionSheet> {
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
   final _reasonController = TextEditingController();
   TransactionType _type = TransactionType.LEND;
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
   bool _isLoading = false;
+
+  // ── Draft ──
+  @override
+  String get draftKey => 'debt:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'name': _nameController.text,
+        'amount': _amountController.text,
+        'reason': _reasonController.text,
+        'type': _type,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _nameController.text = draft['name'] as String? ?? '';
+    _amountController.text = draft['amount'] as String? ?? '';
+    _reasonController.text = draft['reason'] as String? ?? '';
+    _type = draft['type'] as TransactionType? ?? TransactionType.LEND;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -51,6 +79,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
       date: _selectedDate,
     );
 
+    if (success) markSubmitted();
     if (success && mounted) Navigator.pop(context);
     if (mounted) setState(() => _isLoading = false);
   }
@@ -72,6 +101,10 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
         children: [
           Text('Add Transaction', style: theme.textTheme.titleLarge),
           AppSpacing.gapMd,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
 
           // Type Toggle
           SegmentedButton<TransactionType>(
@@ -87,7 +120,7 @@ class _AddTransactionSheetState extends State<AddTransactionSheet> {
           // Person Name
           TextFormField(
             controller: _nameController,
-            autofocus: true,
+            autofocus: !draftRestored,
             decoration: const InputDecoration(
               labelText: 'Person Name',
               prefixIcon: Icon(Icons.person_outline),

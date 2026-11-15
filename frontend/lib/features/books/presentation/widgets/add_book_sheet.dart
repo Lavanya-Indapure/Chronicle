@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/features/books/domain/models/book.dart';
@@ -19,7 +21,7 @@ class AddBookSheet extends ConsumerStatefulWidget {
   ConsumerState<AddBookSheet> createState() => _AddBookSheetState();
 }
 
-class _AddBookSheetState extends ConsumerState<AddBookSheet> {
+class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin<AddBookSheet> {
   final _formKey = GlobalKey<FormState>();
   late final _nameController = TextEditingController(text: widget.book?.name);
   late final _authorController = TextEditingController(text: widget.book?.author);
@@ -31,6 +33,37 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.book != null;
+
+  // ── Draft ──
+  @override
+  String get draftKey => _isEditing ? 'book:edit:${widget.book!.id}' : 'book:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'name': _nameController.text,
+        'author': _authorController.text,
+        'takeaways': _takeawaysController.text,
+        'status': _status,
+        'rating': _rating,
+        'isFavorite': _isFavorite,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    final book = widget.book;
+    _nameController.text = draft['name'] as String? ?? book?.name ?? '';
+    _authorController.text = draft['author'] as String? ?? book?.author ?? '';
+    _takeawaysController.text = draft['takeaways'] as String? ?? book?.takeaways ?? '';
+    _status = draft['status'] as String? ?? book?.status ?? 'reading';
+    _rating = draft.containsKey('rating') ? draft['rating'] as int? : book?.rating?.round();
+    _isFavorite = draft['isFavorite'] as bool? ?? book?.isFavorite ?? false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -66,6 +99,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
             isFavorite: _isFavorite,
           );
 
+    if (ok) markSubmitted();
     if (!mounted) return;
     setState(() => _isSubmitting = false);
     if (ok) Navigator.pop(context);
@@ -91,6 +125,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
 
     setState(() => _isSubmitting = true);
     final ok = await ref.read(bookControllerProvider.notifier).deleteBook(widget.book!.id);
+    if (ok) markSubmitted(); // deleted → no draft to keep
     if (!mounted) return;
     setState(() => _isSubmitting = false);
     if (ok) Navigator.pop(context);
@@ -126,9 +161,13 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> {
               ],
             ),
             AppSpacing.gapMd,
+            if (draftRestored) ...[
+              DraftRestoredBanner(onDiscard: discardDraft),
+              AppSpacing.gapMd,
+            ],
             TextFormField(
               controller: _nameController,
-              autofocus: !_isEditing,
+              autofocus: !_isEditing && !draftRestored,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(labelText: AppStrings.bookTitle, prefixIcon: Icon(Icons.menu_book_rounded)),
               validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.bookTitleRequired : null,

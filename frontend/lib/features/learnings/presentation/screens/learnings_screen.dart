@@ -6,6 +6,8 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/app_search_field.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/core/widgets/section_header.dart';
@@ -183,13 +185,45 @@ class _AddLearningSheet extends StatefulWidget {
   State<_AddLearningSheet> createState() => _AddLearningSheetState();
 }
 
-class _AddLearningSheetState extends State<_AddLearningSheet> {
+class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixin<_AddLearningSheet> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _sourceController = TextEditingController();
   LearningCategory _category = LearningCategory.life;
   int _rating = 3;
-  DateTime _date = DateTime.now();
+  final DateTime _initialDate = DateTime.now();
+  late DateTime _date = _initialDate;
+  bool _saving = false;
+
+  // ── Draft ──
+  @override
+  String get draftKey => 'learning:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'title': _titleController.text,
+        'details': _descController.text,
+        'source': _sourceController.text,
+        'category': _category,
+        'rating': _rating,
+        'date': _date,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _titleController.text = draft['title'] as String? ?? '';
+    _descController.text = draft['details'] as String? ?? '';
+    _sourceController.text = draft['source'] as String? ?? '';
+    _category = draft['category'] as LearningCategory? ?? LearningCategory.life;
+    _rating = draft['rating'] as int? ?? 3;
+    _date = draft['date'] as DateTime? ?? _initialDate;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -201,20 +235,30 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
 
   static String? _orNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
 
-  void _save() {
+  /// Saves, and only on success clears the draft and closes; a failed save
+  /// keeps the sheet (and draft) so nothing typed is lost.
+  Future<void> _save() async {
     final title = _titleController.text.trim();
-    if (title.isEmpty) return;
-    widget.ref.read(learningControllerProvider.notifier).addLearning(Learning(
-          id: '',
-          userId: '',
-          title: title,
-          description: _orNull(_descController),
-          category: _category.key,
-          source: _orNull(_sourceController),
-          usefulnessRating: _rating,
-          logDate: _date,
-        ));
-    Navigator.pop(context);
+    if (title.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.ref.read(learningControllerProvider.notifier).addLearning(Learning(
+            id: '',
+            userId: '',
+            title: title,
+            description: _orNull(_descController),
+            category: _category.key,
+            source: _orNull(_sourceController),
+            usefulnessRating: _rating,
+            logDate: _date,
+          ));
+      markSubmitted();
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.unknownError)));
+    }
   }
 
   @override
@@ -233,9 +277,13 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
         children: [
           const JournalSheetHeader(title: AppStrings.learningNewTitle),
           AppSpacing.gapMd,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
           TextField(
             controller: _titleController,
-            autofocus: true,
+            autofocus: !draftRestored,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(labelText: AppStrings.learningTitleLabel),
           ),
@@ -285,7 +333,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> {
           AppSpacing.gapSm,
           JournalDateField(value: _date, onChanged: (d) => setState(() => _date = d)),
           AppSpacing.gapLg,
-          FilledButton(onPressed: _save, child: const Text(AppStrings.learningSave)),
+          FilledButton(onPressed: _saving ? null : _save, child: const Text(AppStrings.learningSave)),
         ],
       ),
     );

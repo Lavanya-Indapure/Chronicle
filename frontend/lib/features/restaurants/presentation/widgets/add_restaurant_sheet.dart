@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/features/restaurants/presentation/controllers/restaurant_controller.dart';
 import 'package:chronicle/features/restaurants/presentation/widgets/restaurant_form_fields.dart';
@@ -15,7 +17,7 @@ class AddRestaurantSheet extends ConsumerStatefulWidget {
   ConsumerState<AddRestaurantSheet> createState() => _AddRestaurantSheetState();
 }
 
-class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> {
+class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> with DraftFormMixin<AddRestaurantSheet> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -29,6 +31,42 @@ class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> {
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  // ── Draft ──
+  @override
+  String get draftKey => 'restaurant:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'name': _nameController.text,
+        'address': _addressController.text,
+        'bill': _billController.text,
+        'food': _foodController.text,
+        'notes': _notesController.text,
+        'rating': _rating,
+        'favorite': _isFavorite,
+        'photos': encodePhotoPaths(_photos),
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _nameController.text = draft['name'] as String? ?? '';
+    _addressController.text = draft['address'] as String? ?? '';
+    _billController.text = draft['bill'] as String? ?? '';
+    _foodController.text = draft['food'] as String? ?? '';
+    _notesController.text = draft['notes'] as String? ?? '';
+    _rating = draft['rating'] as double? ?? 3.0;
+    _isFavorite = draft['favorite'] as bool? ?? false;
+    _photos
+      ..clear()
+      ..addAll(decodePhotoPaths(draft['photos'] as String?));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -65,6 +103,7 @@ class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> {
           photos: _photos,
           isFavorite: _isFavorite,
         );
+    if (ok) markSubmitted();
     if (!mounted) return;
     // On failure the screen shows the error; keep the sheet open to retry.
     if (ok) {
@@ -93,6 +132,10 @@ class _AddRestaurantSheetState extends ConsumerState<AddRestaurantSheet> {
           children: [
             Text(AppStrings.logRestaurant, style: theme.textTheme.titleLarge),
             AppSpacing.gapLg,
+            if (draftRestored) ...[
+              DraftRestoredBanner(onDiscard: discardDraft),
+              AppSpacing.gapMd,
+            ],
             TextFormField(
               controller: _nameController,
               textCapitalization: TextCapitalization.words,

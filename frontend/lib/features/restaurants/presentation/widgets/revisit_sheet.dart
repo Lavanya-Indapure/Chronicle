@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/features/restaurants/domain/models/restaurant.dart';
 import 'package:chronicle/features/restaurants/presentation/controllers/restaurant_controller.dart';
@@ -20,16 +22,48 @@ class RevisitSheet extends ConsumerStatefulWidget {
   ConsumerState<RevisitSheet> createState() => _RevisitSheetState();
 }
 
-class _RevisitSheetState extends ConsumerState<RevisitSheet> {
+class _RevisitSheetState extends ConsumerState<RevisitSheet> with DraftFormMixin<RevisitSheet> {
   final _billController = TextEditingController();
   final _foodController = TextEditingController();
   final _notesController = TextEditingController();
 
-  late double _rating = widget.restaurant.rating.clamp(1.0, 5.0);
+  late double _rating = _defaultRating;
   final List<File> _photos = [];
   bool _isSubmitting = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  double get _defaultRating => widget.restaurant.rating.clamp(1.0, 5.0);
+
+  // ── Draft (one per restaurant) ──
+  @override
+  String get draftKey => 'restaurant:visit:${widget.restaurant.id}';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'bill': _billController.text,
+        'food': _foodController.text,
+        'notes': _notesController.text,
+        'rating': _rating,
+        'photos': encodePhotoPaths(_photos),
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _billController.text = draft['bill'] as String? ?? '';
+    _foodController.text = draft['food'] as String? ?? '';
+    _notesController.text = draft['notes'] as String? ?? '';
+    _rating = draft['rating'] as double? ?? _defaultRating;
+    _photos
+      ..clear()
+      ..addAll(decodePhotoPaths(draft['photos'] as String?));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -58,6 +92,7 @@ class _RevisitSheetState extends ConsumerState<RevisitSheet> {
           notes: _trimmedOrNull(_notesController),
           photos: _photos,
         );
+    if (ok) markSubmitted();
     if (!mounted) return;
     if (!ok) {
       // The screen shows the error; keep the sheet open to retry.
@@ -93,6 +128,10 @@ class _RevisitSheetState extends ConsumerState<RevisitSheet> {
             overflow: TextOverflow.ellipsis,
           ),
           AppSpacing.gapLg,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
           RatingField(label: AppStrings.ratingForVisit, value: _rating, onChanged: (v) => setState(() => _rating = v)),
           AppSpacing.gapMd,
           TextField(

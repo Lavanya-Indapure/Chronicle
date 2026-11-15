@@ -90,6 +90,7 @@ class TodosScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (ctx) => EditTodoSheet(
+        draftId: template.id,
         currentTitle: template.title,
         currentDescription: template.description,
         currentType: template.recurrenceType,

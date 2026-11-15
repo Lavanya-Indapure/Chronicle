@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
@@ -25,17 +27,49 @@ class AddExpenseSheet extends ConsumerStatefulWidget {
   ConsumerState<AddExpenseSheet> createState() => _AddExpenseSheetState();
 }
 
-class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
+class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> with DraftFormMixin<AddExpenseSheet> {
+  /// Starting date (the expense's date when editing, else today).
+  late final DateTime _startDate = widget.initial?.expenseDate ?? DateTime.now();
   late final _amountController = TextEditingController(
     text: widget.initial == null ? null : _formatAmount(widget.initial!.amount),
   );
   late final _descriptionController = TextEditingController(text: widget.initial?.description);
   late bool _isNecessary = widget.initial?.isNecessary ?? true;
-  late DateTime _selectedDate = widget.initial?.expenseDate ?? DateTime.now();
+  late DateTime _selectedDate = _startDate;
   late String? _selectedCategoryId = widget.initial?.categoryId;
   bool _isLoading = false;
 
   bool get _isEditing => widget.initial != null;
+
+  // ── Draft ──
+  @override
+  String get draftKey => _isEditing ? 'expense:edit:${widget.initial!.id}' : 'expense:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'amount': _amountController.text,
+        'description': _descriptionController.text,
+        'categoryId': _selectedCategoryId,
+        'isNecessary': _isNecessary,
+        'date': _selectedDate,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    final initial = widget.initial;
+    _amountController.text =
+        draft['amount'] as String? ?? (initial == null ? '' : _formatAmount(initial.amount));
+    _descriptionController.text = draft['description'] as String? ?? initial?.description ?? '';
+    _selectedCategoryId = draft.containsKey('categoryId') ? draft['categoryId'] as String? : initial?.categoryId;
+    _isNecessary = draft['isNecessary'] as bool? ?? initial?.isNecessary ?? true;
+    _selectedDate = draft['date'] as DateTime? ?? _startDate;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   /// 120.0 → "120", 99.5 → "99.5"
   static String _formatAmount(double v) => v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
@@ -73,6 +107,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
       date: _selectedDate,
     );
 
+    if (success) markSubmitted();
     if (success && mounted) Navigator.pop(context);
     if (mounted) setState(() => _isLoading = false);
   }
@@ -94,11 +129,15 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
         children: [
           Text(_isEditing ? AppStrings.editExpense : AppStrings.addExpense, style: theme.textTheme.titleLarge),
           AppSpacing.gapMd,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
 
           // Amount
           TextFormField(
             controller: _amountController,
-            autofocus: !_isEditing,
+            autofocus: !_isEditing && !draftRestored,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: AppStrings.amount,
@@ -128,6 +167,7 @@ class _AddExpenseSheetState extends ConsumerState<AddExpenseSheet> {
                   builder: (context, ref, child) {
                     final categories = ref.watch(expenseControllerProvider).categories;
                     return DropdownButtonFormField<String>(
+                        isExpanded: true, // ellipsize long labels instead of overflowing
                       value: _selectedCategoryId,
                       hint: const Text('Select Category'),
                       decoration: const InputDecoration(

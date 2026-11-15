@@ -22,6 +22,10 @@ abstract final class AppStrings {
   static const String selectDob = 'Select Date of Birth';
   static const String logout = 'Logout';
   static const String logoutConfirm = 'Are you sure you want to log out?';
+
+  // ── Drafts ──
+  static const String draftRestored = 'Draft restored';
+  static const String discardDraft = 'Discard';
   static const String forgotPassword = 'Forgot Password?';
   static const String resetPassword = 'Reset Password';
   static const String sendResetLink = 'Send Reset Link';

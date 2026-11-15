@@ -5,6 +5,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/features/photos/presentation/controllers/photo_controller.dart';
 
@@ -16,7 +18,7 @@ class AddPhotoSheet extends ConsumerStatefulWidget {
   ConsumerState<AddPhotoSheet> createState() => _AddPhotoSheetState();
 }
 
-class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
+class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> with DraftFormMixin<AddPhotoSheet> {
   /// Height of the image preview / picker area.
   static const double _previewHeight = 200;
 
@@ -26,6 +28,34 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
   bool _isUploading = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  // ── Draft ──
+  @override
+  String get draftKey => 'photo:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'imagePath': _imageFile?.path,
+        'caption': _captionController.text,
+        'date': _selectedDate,
+      };
+
+  /// A picked image whose file no longer exists (e.g. the picker's temp copy
+  /// was cleaned up) is dropped; caption and date are still restored.
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    final path = draft['imagePath'] as String?;
+    final file = path == null ? null : File(path);
+    _imageFile = (file != null && file.existsSync()) ? file : null;
+    _captionController.text = draft['caption'] as String? ?? '';
+    _selectedDate = draft['date'] as DateTime? ?? DateTime.now();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -63,6 +93,7 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
           caption: _captionController.text.trim().isEmpty ? null : _captionController.text.trim(),
           date: _selectedDate,
         );
+    if (success) markSubmitted();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -126,6 +157,10 @@ class _AddPhotoSheetState extends ConsumerState<AddPhotoSheet> {
         children: [
           Text(AppStrings.addNewMemory, style: theme.textTheme.titleLarge),
           AppSpacing.gapLg,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
 
           // Preview / picker
           Material(

@@ -6,6 +6,8 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/app_search_field.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/icon_badge.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
@@ -198,12 +200,42 @@ class _AddPlaceSheet extends StatefulWidget {
   State<_AddPlaceSheet> createState() => _AddPlaceSheetState();
 }
 
-class _AddPlaceSheetState extends State<_AddPlaceSheet> {
+class _AddPlaceSheetState extends State<_AddPlaceSheet> with DraftFormMixin<_AddPlaceSheet> {
   final _nameController = TextEditingController();
   final _cityController = TextEditingController();
   final _descController = TextEditingController();
   int _rating = 4;
-  DateTime _date = DateTime.now();
+  final DateTime _initialDate = DateTime.now();
+  late DateTime _date = _initialDate;
+  bool _saving = false;
+
+  // ── Draft ──
+  @override
+  String get draftKey => 'place:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'name': _nameController.text,
+        'city': _cityController.text,
+        'details': _descController.text,
+        'rating': _rating,
+        'date': _date,
+      };
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _nameController.text = draft['name'] as String? ?? '';
+    _cityController.text = draft['city'] as String? ?? '';
+    _descController.text = draft['details'] as String? ?? '';
+    _rating = draft['rating'] as int? ?? 4;
+    _date = draft['date'] as DateTime? ?? _initialDate;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -215,19 +247,29 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
 
   static String? _orNull(TextEditingController c) => c.text.trim().isEmpty ? null : c.text.trim();
 
-  void _save() {
+  /// Saves, and only on success clears the draft and closes; a failed save
+  /// keeps the sheet (and draft) so nothing typed is lost.
+  Future<void> _save() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) return;
-    widget.ref.read(placeControllerProvider.notifier).addPlace(PlaceVisited(
-          id: '',
-          userId: '',
-          placeName: name,
-          city: _orNull(_cityController),
-          visitDate: _date,
-          description: _orNull(_descController),
-          rating: _rating,
-        ));
-    Navigator.pop(context);
+    if (name.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    try {
+      await widget.ref.read(placeControllerProvider.notifier).addPlace(PlaceVisited(
+            id: '',
+            userId: '',
+            placeName: name,
+            city: _orNull(_cityController),
+            visitDate: _date,
+            description: _orNull(_descController),
+            rating: _rating,
+          ));
+      markSubmitted();
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.unknownError)));
+    }
   }
 
   @override
@@ -245,9 +287,13 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
         children: [
           const JournalSheetHeader(title: AppStrings.placeNewTitle),
           AppSpacing.gapMd,
+          if (draftRestored) ...[
+            DraftRestoredBanner(onDiscard: discardDraft),
+            AppSpacing.gapMd,
+          ],
           TextField(
             controller: _nameController,
-            autofocus: true,
+            autofocus: !draftRestored,
             textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(labelText: AppStrings.placeNameLabel, prefixIcon: Icon(Icons.place_outlined)),
           ),
@@ -274,7 +320,7 @@ class _AddPlaceSheetState extends State<_AddPlaceSheet> {
           AppSpacing.gapSm,
           JournalDateField(value: _date, onChanged: (d) => setState(() => _date = d)),
           AppSpacing.gapLg,
-          FilledButton(onPressed: _save, child: const Text(AppStrings.placeSave)),
+          FilledButton(onPressed: _saving ? null : _save, child: const Text(AppStrings.placeSave)),
         ],
       ),
     );

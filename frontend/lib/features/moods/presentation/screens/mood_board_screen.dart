@@ -5,6 +5,8 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/section_header.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
@@ -215,9 +217,29 @@ class _MoodPicker extends StatefulWidget {
   State<_MoodPicker> createState() => _MoodPickerState();
 }
 
-class _MoodPickerState extends State<_MoodPicker> {
+class _MoodPickerState extends State<_MoodPicker> with DraftFormMixin<_MoodPicker> {
   final _noteController = TextEditingController();
   MoodKind? _selected;
+  bool _logging = false;
+
+  // ── Draft: a picked mood + half-written note survive leaving the screen ──
+  @override
+  String get draftKey => 'mood:note';
+
+  @override
+  Map<String, Object?> captureDraft() => {'mood': _selected, 'note': _noteController.text};
+
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _selected = draft['mood'] as MoodKind?;
+    _noteController.text = draft['note'] as String? ?? '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
 
   @override
   void dispose() {
@@ -225,11 +247,25 @@ class _MoodPickerState extends State<_MoodPicker> {
     super.dispose();
   }
 
-  void _log() {
+  /// Logs, and only on success resets the picker (and drops the draft);
+  /// a failed log keeps the mood and note.
+  Future<void> _log() async {
+    if (_logging) return;
     final note = _noteController.text.trim();
-    widget.onLog(_selected!.key, note.isEmpty ? null : note);
-    _noteController.clear();
-    setState(() => _selected = null);
+    setState(() => _logging = true);
+    try {
+      await widget.onLog(_selected!.key, note.isEmpty ? null : note);
+      if (!mounted) return;
+      // The picker stays on screen, so reset in place rather than
+      // markSubmitted() (which would stop drafting for this widget).
+      discardDraft();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(AppStrings.unknownError)));
+      }
+    } finally {
+      if (mounted) setState(() => _logging = false);
+    }
   }
 
   @override
@@ -268,13 +304,20 @@ class _MoodPickerState extends State<_MoodPicker> {
           ),
           if (_selected != null) ...[
             AppSpacing.gapMd,
+            if (draftRestored) ...[
+              DraftRestoredBanner(onDiscard: discardDraft),
+              AppSpacing.gapSm,
+            ],
             TextField(
               controller: _noteController,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(hintText: AppStrings.moodNoteHint),
             ),
             AppSpacing.gapMd,
-            FilledButton(onPressed: _log, child: Text('${AppStrings.moodLog} · ${_selected!.emoji}')),
+            FilledButton(
+              onPressed: _logging ? null : _log,
+              child: Text('${AppStrings.moodLog} · ${_selected!.emoji}'),
+            ),
           ],
         ],
       ),

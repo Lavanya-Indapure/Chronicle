@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/widgets/draft_form_mixin.dart';
+import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/features/thoughts/domain/models/thought.dart';
@@ -17,13 +19,40 @@ class AddThoughtSheet extends ConsumerStatefulWidget {
   ConsumerState<AddThoughtSheet> createState() => _AddThoughtSheetState();
 }
 
-class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> {
+class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> with DraftFormMixin<AddThoughtSheet> {
   final _formKey = GlobalKey<FormState>();
   late final _contentController = TextEditingController(text: widget.thought?.content);
   late final _tagsController = TextEditingController(text: widget.thought?.tags);
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.thought != null;
+
+  // ── Draft ──
+  @override
+  String get draftKey => _isEditing ? 'thought:edit:${widget.thought!.id}' : 'thought:new';
+
+  @override
+  Map<String, Object?> captureDraft() => {
+        'content': _contentController.text,
+        'tags': _tagsController.text,
+      };
+
+  /// Missing keys fall back to the thought being edited (or blank for new).
+  @override
+  void restoreDraft(Map<String, Object?> draft) {
+    _contentController.text = draft['content'] as String? ?? widget.thought?.content ?? '';
+    _tagsController.text = draft['tags'] as String? ?? widget.thought?.tags ?? '';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    initDraft();
+  }
+
+  /// The controller reports failures via `errorMessage` (cleared on every
+  /// state change), not a return value.
+  bool get _lastActionFailed => ref.read(thoughtControllerProvider).errorMessage != null;
 
   @override
   void dispose() {
@@ -45,6 +74,9 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> {
       } else {
         await controller.createThought(content, tags);
       }
+      // On failure keep the sheet (and the draft) so nothing typed is lost.
+      if (_lastActionFailed) return;
+      markSubmitted();
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -56,6 +88,8 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(thoughtControllerProvider.notifier).deleteThought(widget.thought!.id);
+      if (_lastActionFailed) return;
+      markSubmitted();
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -82,9 +116,13 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> {
               onDelete: _isEditing && !_isSubmitting ? _delete : null,
             ),
             AppSpacing.gapMd,
+            if (draftRestored) ...[
+              DraftRestoredBanner(onDiscard: discardDraft),
+              AppSpacing.gapMd,
+            ],
             TextFormField(
               controller: _contentController,
-              autofocus: !_isEditing,
+              autofocus: !_isEditing && !draftRestored,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: AppStrings.thoughtContentLabel,
