@@ -189,7 +189,7 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> with DraftFormMixin
                       decoration: const InputDecoration(labelText: 'Category', hintText: 'Personal, Career...'),
                     ),
                   ),
-                  AppSpacing.gapMd,
+                  AppSpacing.hGapMd,
                   Expanded(
                     child: DropdownButtonFormField<String>(
                       isExpanded: true, // ellipsize long labels instead of overflowing

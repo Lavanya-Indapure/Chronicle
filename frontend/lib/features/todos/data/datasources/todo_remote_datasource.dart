@@ -104,29 +104,66 @@ class TodoRemoteDatasource {
     await client.from('todo_instances').delete().eq('template_id', templateId);
   }
 
-  /// Find incomplete one-time instances from before a given date.
+  /// Find one-time todos from before [date] that are still unfinished, one
+  /// row per todo (its most recent instance).
+  ///
+  /// Each carry-forward creates a new instance, so a one-time todo becomes a
+  /// chain of instances across days. The todo is finished as soon as ANY
+  /// instance in its chain is completed — the older, never-ticked copies must
+  /// not bring it back.
   Future<List<Map<String, dynamic>>> getCarryForwardCandidates(String userId, DateTime date) async {
     final todayStr = date.toIso8601String().split('T')[0];
-    
-    // Fetch all incomplete, non-carried instances from before today.
-    // We join todo_templates to check the recurrence_type in Dart.
+
+    // Incomplete instances from before today (originals and carried copies),
+    // joined with their template to check recurrence_type.
     final response = await client
         .from('todo_instances')
-        .select('*, todo_templates!left(recurrence_type)')
+        .select('*, todo_templates!left(recurrence_type, deleted_at, is_active)')
         .eq('user_id', userId)
         .eq('is_completed', false)
-        .eq('is_carried_forward', false)
         .lt('scheduled_date', todayStr);
-        
-    final List<Map<String, dynamic>> instances = List<Map<String, dynamic>>.from(response);
 
-    // Filter in Dart: manual one-time (template_id is null) OR 'none' recurrence template
-    return instances.where((i) {
-      final templateData = i['todo_templates'] as Map<String, dynamic>?;
-      final recurrenceType = templateData?['recurrence_type'] as String?;
-      
-      return i['template_id'] == null || recurrenceType == 'none';
+    final oneTime = List<Map<String, dynamic>>.from(response).where((i) {
+      if (i['template_id'] == null) return true; // manual one-time instance
+      final template = i['todo_templates'] as Map<String, dynamic>?;
+      if (template == null) return false;
+      if (template['deleted_at'] != null || template['is_active'] == false) return false;
+      return template['recurrence_type'] == 'none';
     }).toList();
+    if (oneTime.isEmpty) return [];
+
+    // Templates that already have a completed instance (on any date) are done.
+    final templateIds = oneTime
+        .map((i) => i['template_id'] as String?)
+        .whereType<String>()
+        .toSet()
+        .toList();
+    final doneTemplateIds = <String>{};
+    if (templateIds.isNotEmpty) {
+      final completed = await client
+          .from('todo_instances')
+          .select('template_id')
+          .eq('user_id', userId)
+          .eq('is_completed', true)
+          .inFilter('template_id', templateIds);
+      for (final row in List<Map<String, dynamic>>.from(completed)) {
+        doneTemplateIds.add(row['template_id'] as String);
+      }
+    }
+
+    // Keep only the latest instance of each unfinished todo.
+    final latest = <String, Map<String, dynamic>>{};
+    for (final i in oneTime) {
+      final templateId = i['template_id'] as String?;
+      if (templateId != null && doneTemplateIds.contains(templateId)) continue;
+      final key = templateId ?? 'title:${i['title']}';
+      final current = latest[key];
+      if (current == null ||
+          (i['scheduled_date'] as String).compareTo(current['scheduled_date'] as String) > 0) {
+        latest[key] = i;
+      }
+    }
+    return latest.values.toList();
   }
 
   /// Check if an instance already exists for a template on a given date.

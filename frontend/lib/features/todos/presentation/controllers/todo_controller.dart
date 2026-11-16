@@ -115,12 +115,14 @@ class TodoController extends Notifier<TodoState> {
       // 4. Carry forward incomplete one-time tasks
       final candidates = await _repository.getCarryForwardCandidates(today);
       for (final old in candidates) {
-        // Check we haven't already carried this
-        final alreadyCarried = instances.any((i) =>
-            i.title == old.title &&
-            i.isCarriedForward &&
+        // Skip if this todo already has an instance today (carried earlier
+        // today, or created today).
+        final alreadyToday = instances.any((i) =>
+            (old.templateId != null
+                ? i.templateId == old.templateId
+                : i.templateId == null && i.title == old.title) &&
             i.scheduledDate.toIso8601String().split('T').first == todayStr);
-        if (alreadyCarried) continue;
+        if (alreadyToday) continue;
 
         final carried = TodoInstance(
           id: '',
@@ -130,7 +132,8 @@ class TodoController extends Notifier<TodoState> {
           description: old.description,
           scheduledDate: today,
           isCarriedForward: true,
-          carriedFromDate: old.scheduledDate,
+          // Keep pointing at the day the todo was first scheduled.
+          carriedFromDate: old.carriedFromDate ?? old.scheduledDate,
           createdAt: today,
           updatedAt: today,
         );
