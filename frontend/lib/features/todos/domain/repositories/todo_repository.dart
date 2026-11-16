@@ -36,6 +36,10 @@ abstract class TodoRepository {
   /// Create a new instance (for recurrence generation / carry forward).
   Future<void> createInstance(TodoInstance instance);
 
+  /// Move an existing instance to [date] (pending weekly/monthly todos roll
+  /// forward to today).
+  Future<void> rescheduleInstance(String instanceId, DateTime date);
+
   /// Find incomplete one-time instances from before today (for carry forward).
   Future<List<TodoInstance>> getCarryForwardCandidates(DateTime today);
 }

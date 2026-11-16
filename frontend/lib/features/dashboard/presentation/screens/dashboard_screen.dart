@@ -15,6 +15,7 @@ import 'package:chronicle/features/dashboard/presentation/widgets/dashboard_head
 import 'package:chronicle/features/dashboard/presentation/widgets/glance_card.dart';
 import 'package:chronicle/features/dashboard/presentation/widgets/insight_card.dart';
 import 'package:chronicle/features/dashboard/presentation/widgets/spending_chart_card.dart';
+import 'package:chronicle/features/dashboard/presentation/widgets/todo_heatmap_card.dart';
 import 'package:chronicle/features/dashboard/presentation/widgets/up_next_card.dart';
 
 /// Vertical space between dashboard sections.
@@ -121,6 +122,9 @@ class _DashboardBody extends StatelessWidget {
         const SectionHeader(title: AppStrings.yourDay, compact: true),
         AppSpacing.gapSm,
         _GlanceGrid(state: state),
+        // The streak tile's history, right below it.
+        AppSpacing.gapSm,
+        TodoHeatmapCard(dayStats: state.todoAnalytics.dayStats, today: DateTime.now()),
         _sectionGap,
         const UpNextCard(),
         if (insights.isNotEmpty) ...[

@@ -1,3 +1,5 @@
+import 'package:chronicle/features/todos/domain/models/todo_template.dart';
+
 /// A concrete instance of a todo for a specific date.
 class TodoInstance {
   final String id;
@@ -13,6 +15,10 @@ class TodoInstance {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  /// The template's recurrence, when the query joined `todo_templates`
+  /// (read-only; never written back).
+  final RecurrenceType? recurrenceType;
+
   const TodoInstance({
     required this.id,
     this.templateId,
@@ -26,9 +32,12 @@ class TodoInstance {
     this.carriedFromDate,
     required this.createdAt,
     required this.updatedAt,
+    this.recurrenceType,
   });
 
   factory TodoInstance.fromJson(Map<String, dynamic> json) {
+    final template = json['todo_templates'];
+    final recurrence = template is Map<String, dynamic> ? template['recurrence_type'] as String? : null;
     return TodoInstance(
       id: json['id'] as String,
       templateId: json['template_id'] as String?,
@@ -42,6 +51,7 @@ class TodoInstance {
       carriedFromDate: json['carried_from_date'] != null ? DateTime.parse(json['carried_from_date'] as String) : null,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
+      recurrenceType: recurrence == null ? null : RecurrenceType.fromString(recurrence),
     );
   }
 
@@ -59,6 +69,7 @@ class TodoInstance {
         carriedFromDate: carriedFromDate,
         createdAt: createdAt,
         updatedAt: updatedAt,
+        recurrenceType: recurrenceType,
       );
 
   Map<String, dynamic> toInsertJson() => {

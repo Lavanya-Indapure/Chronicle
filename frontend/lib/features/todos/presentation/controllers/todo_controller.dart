@@ -5,6 +5,7 @@ import 'package:chronicle/features/todos/data/repositories/todo_repository_impl.
 import 'package:chronicle/features/todos/domain/models/todo_template.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 import 'package:chronicle/features/todos/domain/repositories/todo_repository.dart';
+import 'package:chronicle/features/todos/domain/recurrence_rules.dart';
 import 'package:chronicle/core/errors/app_exception.dart';
 import 'package:chronicle/core/services/logger_service.dart';
 
@@ -89,27 +90,41 @@ class TodoController extends Notifier<TodoState> {
       var instances = await _repository.getInstancesForDate(today);
       LoggerService.info('Fetched ${instances.length} instances for today before generation', tag: 'Todo');
 
-      // 3. Auto-generate missing instances for recurring templates
-      final existingTemplateIds = instances
-          .where((i) => i.templateId != null)
-          .map((i) => i.templateId!)
-          .toSet();
+      // 3. Make sure every recurring template due in its current period is on
+      //    today's list (see RecurrenceRules). Weekly/monthly need the whole
+      //    period's instances — fetched in one query for all templates.
+      final needsPeriod = templates.any((t) => RecurrenceRules.spansPeriod(t.recurrenceType));
+      final periodInstances = needsPeriod
+          ? await _repository.getInstancesBetweenDates(RecurrenceRules.earliestPeriodStart(today), today)
+          : instances;
+      final byTemplate = <String, List<TodoInstance>>{};
+      for (final i in [...instances, ...periodInstances]) {
+        if (i.templateId != null) byTemplate.putIfAbsent(i.templateId!, () => []).add(i);
+      }
 
       for (final template in templates) {
-        if (existingTemplateIds.contains(template.id)) continue;
-        if (!_shouldShowToday(template, today)) continue;
-
-        final newInstance = TodoInstance(
-          id: '', // will be set by DB
-          templateId: template.id,
-          userId: template.userId,
-          title: template.title,
-          description: template.description,
-          scheduledDate: today,
-          createdAt: today,
-          updatedAt: today,
+        final plan = RecurrenceRules.planToday(
+          type: template.recurrenceType,
+          today: today,
+          instances: byTemplate[template.id] ?? const [],
         );
-        await _repository.createInstance(newInstance);
+        switch (plan.kind) {
+          case TodayPlanKind.none:
+            break;
+          case TodayPlanKind.move:
+            await _repository.rescheduleInstance(plan.instanceId!, today);
+          case TodayPlanKind.create:
+            await _repository.createInstance(TodoInstance(
+              id: '', // will be set by DB
+              templateId: template.id,
+              userId: template.userId,
+              title: template.title,
+              description: template.description,
+              scheduledDate: today,
+              createdAt: today,
+              updatedAt: today,
+            ));
+        }
       }
 
       // 4. Carry forward incomplete one-time tasks
@@ -243,23 +258,6 @@ class TodoController extends Notifier<TodoState> {
       await loadTodayTodos(silent: true);
     } on AppException catch (e) {
       state = state.copyWith(groupedTodos: previous, errorMessage: e.message);
-    }
-  }
-
-  /// Whether a template should generate an instance for today.
-  bool _shouldShowToday(TodoTemplate template, DateTime today) {
-    switch (template.recurrenceType) {
-      case RecurrenceType.daily:
-        return true;
-      case RecurrenceType.weekly:
-        // recurrence_days is list of weekday numbers (1=Mon..7=Sun)
-        final weekday = today.weekday; // 1=Mon..7=Sun (ISO)
-        return template.recurrenceDays?.contains(weekday) ?? true;
-      case RecurrenceType.monthly:
-        // Show on the same day of month as created
-        return today.day == template.createdAt.day;
-      case RecurrenceType.none:
-        return false; // one-time — instance created at creation time
     }
   }
 

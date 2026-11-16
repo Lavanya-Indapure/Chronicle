@@ -9,7 +9,10 @@ import 'package:chronicle/features/places/presentation/controllers/place_control
 import 'package:chronicle/features/moods/presentation/controllers/mood_controller.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
+import 'package:chronicle/features/todos/domain/todo_progress.dart';
+import 'package:chronicle/features/health/domain/health_stats.dart';
 import 'package:chronicle/features/health/domain/models/health_models.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/features/learnings/domain/models/learning.dart';
 import 'package:chronicle/features/places/domain/models/place_visited.dart';
 import 'package:chronicle/features/moods/domain/models/mood_entry.dart';
@@ -41,27 +44,26 @@ class DashboardController extends Notifier<DashboardState> {
       final dateRange = _getEffectiveDateRange();
       final start = dateRange.start;
       final end = dateRange.end;
-      final todayStr = DateTime.now().toIso8601String().split('T').first;
 
       // Dependencies
       final expenseRepo = ref.read(expenseRepositoryProvider);
       final todoRepo = ref.read(todoRepositoryProvider);
-      final hydrationRepo = ref.read(hydrationRepositoryProvider);
+      final healthRepo = ref.read(healthRepositoryProvider);
       final learningRepo = ref.read(learningRepositoryProvider);
       final placeRepo = ref.read(placeRepositoryProvider);
       final moodRepo = ref.read(moodRepositoryProvider);
-      
-      // Get Sleep State from Memory Mock
-      final sleepState = ref.read(sleepControllerProvider);
+      final now = DateTime.now();
 
       // Concurrent fetch for date ranges
       final results = await Future.wait([
         expenseRepo.getExpenses(start: start, end: end),
         todoRepo.getInstancesBetweenDates(start, end),
-        hydrationRepo.getTodayLogs(), // Just get today's hydration
+        healthRepo.getHydrationLogs(now), // Just get today's hydration
         learningRepo.getLearnings(), // Currently fetches all, filter in memory
         placeRepo.getPlaces(), // Currently fetches all, filter in memory
         moodRepo.getMoods(), // Currently fetches all, filter in memory
+        healthRepo.getSleepSince(HealthStats.day(now).subtract(const Duration(days: 8))),
+        healthRepo.getSettings(),
       ]);
 
       final expenses = results[0] as List<Expense>;
@@ -71,6 +73,8 @@ class DashboardController extends Notifier<DashboardState> {
       final allLearnings = results[3] as List<Learning>;
       final allPlaces = results[4] as List<PlaceVisited>;
       final allMoods = results[5] as List<MoodEntry>;
+      final sleepRecords = results[6] as List<SleepRecord>;
+      final healthSettings = results[7] as HealthSettings;
 
       // --- Analytics Generation ---
       
@@ -121,73 +125,39 @@ class DashboardController extends Notifier<DashboardState> {
         warningMessage: expenseWarning,
       );
 
-      // 2. Todo Analytics
-      int completedTasks = 0;
-      final historyHeatmap = <String, bool>{};
-      for (final t in todos) {
-        if (t.isCompleted) completedTasks++;
-        final dateStr = t.scheduledDate.toIso8601String().split('T').first;
-        // Mark true if at least one task done on that day
-        historyHeatmap[dateStr] = historyHeatmap[dateStr] == true || t.isCompleted;
-      }
+      // 2. Todo Analytics — totals follow the selected period; the heatmap and
+      //    streaks always cover the last [TodoAnalytics.heatmapWeeks] weeks so
+      //    a short filter (e.g. "Today") can't cut a streak short.
+      final completedTasks = todos.where((t) => t.isCompleted).length;
       final completionRate = todos.isEmpty ? 0.0 : (completedTasks / todos.length) * 100;
-      
-      // Calculate current streak (backward from today)
-      int currentStreak = 0;
-      DateTime checkDate = DateTime.now();
-      while (true) {
-        final dStr = checkDate.toIso8601String().split('T').first;
-        if (historyHeatmap[dStr] == true) {
-          currentStreak++;
-          checkDate = checkDate.subtract(const Duration(days: 1));
-        } else {
-          break;
-        }
-      }
 
-      // Calculate best streak
-      int bestStreak = 0;
-      int tempStreak = 0;
-      final sortedDates = historyHeatmap.keys.toList()..sort();
-      for (int i = 0; i < sortedDates.length; i++) {
-        if (historyHeatmap[sortedDates[i]] == true) {
-           if (i > 0) {
-             final prev = DateTime.parse(sortedDates[i-1]);
-             final curr = DateTime.parse(sortedDates[i]);
-             if (curr.difference(prev).inDays == 1) {
-               tempStreak++;
-             } else {
-               tempStreak = 1;
-             }
-           } else {
-             tempStreak = 1;
-           }
-           if (tempStreak > bestStreak) bestStreak = tempStreak;
-        }
-      }
+      final today = DateTime.now();
+      final historyInstances = await todoRepo.getInstancesBetweenDates(TodoAnalytics.heatmapStart(today), today);
+      final dayStats = TodoProgress.dayStats(historyInstances);
+      final streaks = TodoProgress.streaks(dayStats, today);
+      final currentStreak = streaks.current;
 
       final todoAnalytics = TodoAnalytics(
         totalTasks: todos.length,
         completedTasks: completedTasks,
         completionPercentage: completionRate,
         currentStreak: currentStreak,
-        bestStreak: bestStreak,
-        historyHeatmap: historyHeatmap,
+        bestStreak: streaks.best,
+        dayStats: dayStats,
       );
 
       // 3. Health Analytics
-      Duration? lastNightSleep;
-      if (sleepState.entries.isNotEmpty) {
-        lastNightSleep = sleepState.entries.first.duration;
-      }
-      
-      final doneHydrations = hydrationLogs.where((l) => l.status == 'DONE').length;
-      final hydrationPercentage = hydrationLogs.isEmpty ? 0.0 : (doneHydrations / 17) * 100; // Assuming 17 slots
+      final hydrationSlots = HealthStats.hydrationSlots(healthSettings, hydrationLogs, now);
+      final hydrationPercentage = HealthStats.hydrationFraction(hydrationSlots) * 100;
+      final averageSleep = HealthStats.averageSleep(sleepRecords, now);
+      final sleepBelowGoal = averageSleep != null && averageSleep < Duration(hours: healthSettings.sleepGoalHours);
 
       final healthAnalytics = HealthAnalytics(
-        lastNightSleep: lastNightSleep,
+        lastNightSleep: HealthStats.lastSleep(sleepRecords)?.duration,
+        averageSleep: averageSleep,
+        sleepWarning: sleepBelowGoal ? AppStrings.sleepWarningInsight : null,
         hydrationPercentage: hydrationPercentage,
-        hydrationWarning: hydrationPercentage < 50 && DateTime.now().hour > 18 ? "You need to drink more water today!" : null,
+        hydrationWarning: hydrationPercentage < 50 && now.hour > 18 ? "You need to drink more water today!" : null,
       );
 
       // 4. Activity Summary (filter in memory)
@@ -208,6 +178,9 @@ class DashboardController extends Notifier<DashboardState> {
       }
       if (currentStreak >= 3) {
         insights.add(SmartInsight(id: '2', message: "Great job! You are on a $currentStreak-day task completion streak! Keep it up.", type: InsightType.positive));
+      }
+      if (healthAnalytics.sleepWarning != null) {
+        insights.add(SmartInsight(id: '4', message: healthAnalytics.sleepWarning!, type: InsightType.warning));
       }
       if (healthAnalytics.hydrationPercentage >= 80) {
         insights.add(SmartInsight(id: '3', message: "You are staying well hydrated today. Good job!", type: InsightType.positive));

@@ -1,5 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
+import 'package:chronicle/features/todos/domain/models/todo_template.dart';
+import 'package:chronicle/features/todos/domain/recurrence_rules.dart';
+import 'package:chronicle/features/todos/domain/todo_progress.dart';
 
 // Represents the global date range filter for the dashboard
 enum DashboardDateFilter {
@@ -115,8 +118,19 @@ class TodoAnalytics extends Equatable {
   final double completionPercentage;
   final int currentStreak;
   final int bestStreak;
-  // Keyed by YYYY-MM-DD to boolean for the heatmap
-  final Map<String, bool> historyHeatmap;
+
+  /// Per-day completion for the heatmap, keyed by date (time stripped),
+  /// covering [heatmapWeeks] weeks up to today.
+  final Map<DateTime, TodoDayStat> dayStats;
+
+  /// Weeks shown on the dashboard heatmap (and used for streaks).
+  static const int heatmapWeeks = 16;
+
+  /// Monday of the first heatmap column, so columns line up with weeks.
+  static DateTime heatmapStart(DateTime today) {
+    final monday = RecurrenceRules.periodStart(RecurrenceType.weekly, today);
+    return DateTime(monday.year, monday.month, monday.day - (heatmapWeeks - 1) * DateTime.daysPerWeek);
+  }
 
   const TodoAnalytics({
     this.totalTasks = 0,
@@ -124,11 +138,11 @@ class TodoAnalytics extends Equatable {
     this.completionPercentage = 0.0,
     this.currentStreak = 0,
     this.bestStreak = 0,
-    this.historyHeatmap = const {},
+    this.dayStats = const {},
   });
 
   @override
-  List<Object?> get props => [totalTasks, completedTasks, completionPercentage, currentStreak, bestStreak, historyHeatmap];
+  List<Object?> get props => [totalTasks, completedTasks, completionPercentage, currentStreak, bestStreak, dayStats];
 }
 
 class HealthAnalytics extends Equatable {

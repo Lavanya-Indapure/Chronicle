@@ -81,6 +81,16 @@ abstract final class AppStrings {
   static const String moreTodosPrefix = '+';
   static const String moreTodosSuffix = 'more to do';
 
+  // ── Todo heatmap ──
+  static const String todoHeatmapTitle = 'Consistency';
+  static const String todoHeatmapWeeksSuffix = 'weeks';
+  static const String todoHeatmapLess = 'Less';
+  static const String todoHeatmapMore = 'More';
+  static const String todoHeatmapNothingDue = 'nothing due';
+  static const String todoHeatmapDone = 'done';
+  static const String todoHeatmapToday = 'today';
+  static const String todoHeatmapSemantics = 'Todo completion heatmap';
+
   // ── Quick Add ──
   static const String quickAdd = 'Quick Add';
   static const String quickAddExpense = 'Expense';
@@ -262,8 +272,6 @@ abstract final class AppStrings {
   static const String about = 'About';
   static const String version = 'Version';
   static const String appVersion = '1.0.0';
-  static const String lifeLessonsComingSoon = 'Reflect on your journey — coming soon.';
-  static const String miscComingSoon = 'A home for your other memories — coming soon.';
   // Books
   static const String myLibrary = 'My Library';
   static const String searchBooksHint = 'Search title or author…';
@@ -471,6 +479,128 @@ abstract final class AppStrings {
   static const String placeCityLabel = 'City / region (optional)';
   static const String placeDetailsLabel = 'Experience details (optional)';
   static const String placeSave = 'Save Place';
+
+  // ── Life lessons ──
+  static const String lifeLessonsSearchHint = 'Search lessons or tags…';
+  static const String lifeLessonsEmptyTitle = 'What has life taught you?';
+  static const String lifeLessonsEmptyMessage = 'Write down the lessons worth carrying forward.';
+  static const String lifeLessonsAdd = 'New Lesson';
+  static const String lifeLessonsAddFirst = 'Write your first lesson';
+  static const String lifeLessonNewTitle = 'New Life Lesson';
+  static const String lifeLessonEditTitle = 'Edit Life Lesson';
+  static const String lifeLessonDeleteTitle = 'Delete lesson?';
+  static const String lifeLessonTitleLabel = 'Title (optional)';
+  static const String lifeLessonTitleHint = 'Sum it up in a few words';
+  static const String lifeLessonContentLabel = 'The lesson';
+  static const String lifeLessonContentHint = 'What happened, and what did it teach you?';
+  static const String lifeLessonContentRequired = 'Please write the lesson';
+  static const String lifeLessonTagsLabel = 'Tags (comma separated)';
+  static const String lifeLessonTagsHint = 'patience, career, relationships';
+  static const String lifeLessonSave = 'Save Lesson';
+  static const String lifeLessonUpdate = 'Save Changes';
+
+  // ── Miscellaneous ──
+  static const String miscSearchHint = 'Search notes…';
+  static const String miscEmptyTitle = 'A home for everything else';
+  static const String miscEmptyMessage = 'Keep notes and pictures that don’t fit anywhere else.';
+  static const String miscAdd = 'New Item';
+  static const String miscAddFirst = 'Add your first item';
+  static const String miscNewTitle = 'New Item';
+  static const String miscEditTitle = 'Edit Item';
+  static const String miscDeleteTitle = 'Delete item?';
+  static const String miscTitleLabel = 'Title (optional)';
+  static const String miscContentLabel = 'Note (optional)';
+  static const String miscContentHint = 'Write anything…';
+  static const String miscAddImage = 'Tap to add a picture (optional)';
+  static const String miscRemoveImage = 'Remove picture';
+  static const String miscNeedsContent = 'Add a note or a picture';
+  static const String miscSave = 'Save Item';
+  static const String miscUpdate = 'Save Changes';
+
+  // ── Health ──
+  static const String save = 'Save';
+  static const String saving = 'Saving…';
+  static const String healthTodayTitle = 'Water today';
+  static const String healthDailyTracking = 'Daily tracking';
+  static const String healthSettingsTitle = 'Health settings';
+  static const String healthRemindersToggle = 'Water reminders';
+  static const String healthRemindersHint = 'A notification at each glass time';
+  static const String healthDayStart = 'First reminder';
+  static const String healthDayEnd = 'Last reminder';
+  static const String healthInterval = 'Remind me every';
+  static const String healthGlassesPerDay = 'glasses a day';
+  static const String healthNoSlotsWarning = 'The last reminder must be after the first one.';
+  static const String healthSleepGoal = 'Nightly sleep goal';
+  static const String healthLess = 'Less';
+  static const String healthMore = 'More';
+  static const String healthMinutesShort = 'm';
+  static const String healthDaysShort = 'd';
+
+  static const String hydrationToday = 'Today';
+  static const String hydrationGlasses = 'glasses';
+  static const String hydrationNextAt = 'Next at';
+  static const String hydrationLogGlass = 'Log a glass';
+  static const String hydrationSchedule = "Today's schedule";
+  static const String hydrationScheduleHint = 'Tap to log · long-press to skip · tap again to undo';
+  static const String hydrationNoSlots = 'No reminder times set. Adjust them in health settings.';
+  static const String hydrationDone = 'done';
+  static const String hydrationSkipped = 'skipped';
+  static const String hydrationPending = 'not logged';
+
+  static const String sleepLastNight = 'Last night';
+  static const String sleepStart = 'Start sleep';
+  static const String sleepWakeUp = "I'm awake";
+  static const String sleepSleepingSince = 'Asleep since';
+  static const String sleepSoFar = 'so far';
+  static const String sleepGoodNight = 'Good night — tap "I\'m awake" when you get up.';
+  static const String sleepStartHint = 'Tap "Start sleep" at bedtime, or add a night with +.';
+  static const String sleepGoalMet = 'Goal met';
+  static const String sleepBelowGoal = 'Below goal';
+  static const String sleepShortOfGoal = 'short of your goal';
+  static const String sleepThisWeek = 'Last 7 nights';
+  static const String sleepAvgPerNight = 'avg / night';
+  static const String sleepWeekAvg = '7-day avg';
+  static const String sleepGoal = 'Goal';
+  static const String sleepHoursShort = 'h';
+  static const String sleepWeeklyWarningPrefix = 'Your weekly average is below your';
+  static const String sleepWeeklyWarningSuffix = 'goal.';
+  static const String sleepHistory = 'History';
+  static const String sleepHistoryEmpty = 'No nights logged in the last 30 days.';
+  static const String sleepAddManual = 'Log a night';
+  static const String sleepBedtime = 'Went to bed';
+  static const String sleepWakeTime = 'Woke up';
+  static const String sleepTotal = 'Total';
+  static const String sleepErrorOrder = 'Wake-up time must be after bedtime.';
+  static const String sleepErrorTooLong = 'That is longer than 18 hours — check AM/PM.';
+  static const String sleepErrorFuture = "Wake-up time can't be in the future.";
+  static const String sleepWarningInsight = 'Your sleep this week is averaging below your goal.';
+
+  static const String activityTitle = 'Activity';
+  static const String activityToday = 'Today';
+  static const String activityExercise = 'Exercise';
+  static const String activityMeditation = 'Meditation';
+  static const String activityDoneToday = 'Done today';
+  static const String activityTapToLog = 'Tap to mark done';
+  static const String activityDoneTodaySuffix = 'done today';
+  static const String activityDayStreak = 'day streak';
+  static const String activityDaysStreak = 'day streak';
+  static const String activityStreakSuffix = 'streaks';
+  static const String activityNotesHint = 'Notes — what did you do?';
+  static const String activityLastFourWeeks = 'Last 4 weeks';
+  static const String activityDaysOutOf = 'of';
+
+  // ── Reminders ──
+  static const String reminderHydrationChannel = 'Water reminders';
+  static const String reminderHydrationChannelDescription = 'Reminders to drink a glass of water';
+  static const String reminderHydrationTitle = 'Time for a glass of water 💧';
+  static const String reminderHydrationBody = 'Tap to log it in Chronicle.';
+  static const String reminderDuesChannel = 'Dues reminders';
+  static const String reminderDuesChannelDescription = 'Weekly reminder about money lent or borrowed';
+  static const String reminderDuesTitle = 'Dues to settle';
+  static const String reminderDuePending = 'pending';
+  static const String reminderDuesPending = 'pending';
+  static const String reminderDuesToCollect = 'to collect';
+  static const String reminderDuesToPay = 'to pay';
 
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';

@@ -150,6 +150,16 @@ class TodoRepositoryImpl implements TodoRepository {
   }
 
   @override
+  Future<void> rescheduleInstance(String instanceId, DateTime date) async {
+    try {
+      await _datasource.rescheduleInstance(instanceId, date.toIso8601String().split('T').first);
+    } catch (e, st) {
+      LoggerService.error('Failed to reschedule instance', error: e, stackTrace: st, tag: 'Todo');
+      throw ErrorHandler.handle(e);
+    }
+  }
+
+  @override
   Future<List<TodoInstance>> getCarryForwardCandidates(DateTime today) async {
     try {
       final data = await _datasource.getCarryForwardCandidates(_datasource.userId, today);

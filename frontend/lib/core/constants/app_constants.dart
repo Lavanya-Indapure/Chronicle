@@ -8,6 +8,7 @@ class AppConstants {
   // ── Storage ──
   static const String photosBucket = 'photos';
   static const String restaurantsBucket = 'restaurants';
+  static const String miscBucket = 'misc';
 
   /// Lifetime of signed image URLs for private storage buckets.
   static const Duration signedUrlTtl = Duration(hours: 1);

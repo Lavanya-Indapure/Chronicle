@@ -1,0 +1,2 @@
+# Holds the database password — never commit.
+.env

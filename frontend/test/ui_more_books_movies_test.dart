@@ -1,4 +1,4 @@
-// Smoke tests for the redesigned More hub (+ Profile, Settings, placeholders),
+// Smoke tests for the redesigned More hub (+ Profile, Settings),
 // Books and Movies screens: fake data, both themes, small and large phones.
 // Harness + snapshot instructions: test/helpers/ui_test_harness.dart
 
@@ -14,7 +14,6 @@ import 'package:chronicle/features/books/presentation/screens/books_screen.dart'
 import 'package:chronicle/features/more/presentation/controllers/user_profile_provider.dart';
 import 'package:chronicle/features/more/presentation/screens/account_screens.dart';
 import 'package:chronicle/features/more/presentation/screens/more_screen.dart';
-import 'package:chronicle/features/more/presentation/screens/more_sub_screens.dart';
 import 'package:chronicle/features/movies/domain/models/movie.dart';
 import 'package:chronicle/features/movies/presentation/controllers/movie_controller.dart';
 import 'package:chronicle/features/movies/presentation/screens/movies_screen.dart';
@@ -169,14 +168,6 @@ void main() {
     await tester.pumpAndSettle();
     final container = ProviderScopeFinder.container(tester);
     expect(container.read(themeControllerProvider), ThemeMode.light);
-  });
-
-  testWidgets('Placeholder screens render', (tester) async {
-    await pump(tester, const LifeLessonsScreen(), theme: themes.dark);
-    expect(tester.takeException(), isNull);
-    expect(find.text(AppStrings.comingSoon), findsOneWidget);
-    await pump(tester, const MiscellaneousScreen(), theme: themes.dark);
-    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Books: search with no matches shows a muted notice; tapping a book opens the edit sheet', (tester) async {

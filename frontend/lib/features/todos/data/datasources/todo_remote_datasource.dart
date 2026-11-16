@@ -36,12 +36,13 @@ class TodoRemoteDatasource {
     return List<Map<String, dynamic>>.from(response);
   }
 
-  /// Fetch instances between two dates (inclusive).
+  /// Fetch instances between two dates (inclusive), each with its
+  /// template's recurrence_type (left join — manual instances have none).
   Future<List<Map<String, dynamic>>> getInstancesBetweenDates(String startDateStr, String endDateStr) async {
     final currentUserId = userId;
     final response = await client
         .from('todo_instances')
-        .select('*')
+        .select('*, todo_templates!left(recurrence_type)')
         .eq('user_id', currentUserId)
         .gte('scheduled_date', startDateStr)
         .lte('scheduled_date', endDateStr)
@@ -75,6 +76,12 @@ class TodoRemoteDatasource {
       'is_completed': isCompleted,
       'completed_at': isCompleted ? DateTime.now().toUtc().toIso8601String() : null,
     }).eq('id', id);
+  }
+
+  /// Move an instance to another day (weekly/monthly todos roll forward
+  /// while pending).
+  Future<void> rescheduleInstance(String id, String dateStr) async {
+    await client.from('todo_instances').update({'scheduled_date': dateStr}).eq('id', id);
   }
 
   /// Update template.
