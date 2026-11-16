@@ -36,9 +36,9 @@ class PeriodComparison {
   /// Chart series, one value per bucket (weekday for [ComparePeriod.week],
   /// day of month for [ComparePeriod.month]; empty for days).
   /// Week values are per-day totals; month values are running totals.
-  /// Current-period buckets after today are null.
+  /// Buckets after today are null.
   final List<double?> currentSeries;
-  final List<double> previousSeries;
+  final List<double?> previousSeries;
 
   const PeriodComparison({
     required this.period,
@@ -68,40 +68,80 @@ abstract final class ExpenseComparison {
 
   static int _daysInMonth(int year, int month) => DateTime(year, month + 1, 0).day;
 
+  /// Today vs yesterday, this week vs last week, or this month vs last month.
   static PeriodComparison compare(List<Expense> expenses, ComparePeriod period, DateTime now) {
     final today = _day(now);
-    final (DateTime curStart, DateTime prevStart, DateTime prevEnd) = switch (period) {
-      ComparePeriod.day => (today, today.subtract(const Duration(days: 1)), today.subtract(const Duration(days: 1))),
-      ComparePeriod.week => () {
-          final monday = today.subtract(Duration(days: today.weekday - 1));
-          return (monday, monday.subtract(const Duration(days: 7)), today.subtract(const Duration(days: 7)));
-        }(),
-      ComparePeriod.month => () {
-          final prevMonthDays = _daysInMonth(today.year, today.month - 1);
-          final prevFirst = DateTime(today.year, today.month - 1);
-          final sameDay = today.day > prevMonthDays ? prevMonthDays : today.day;
-          return (DateTime(today.year, today.month), prevFirst, DateTime(prevFirst.year, prevFirst.month, sameDay));
-        }(),
-    };
+    switch (period) {
+      case ComparePeriod.month:
+        return compareMonths(expenses, DateTime(today.year, today.month), DateTime(today.year, today.month - 1), now);
+      case ComparePeriod.day:
+        final yesterday = today.subtract(const Duration(days: 1));
+        return _build(expenses, period, today, today, yesterday, yesterday, const [], const []);
+      case ComparePeriod.week:
+        final monday = today.subtract(Duration(days: today.weekday - 1));
+        final (cur, prev) = _weekSeries(expenses, monday, today);
+        return _build(
+          expenses,
+          period,
+          monday,
+          today,
+          monday.subtract(const Duration(days: 7)),
+          today.subtract(const Duration(days: 7)),
+          cur,
+          prev,
+        );
+    }
+  }
 
+  /// Any two months: [month] (shown as "this") vs [other]. Whole months are
+  /// compared, except when either is the current month — then both stop at
+  /// today's day of month so a half-finished month isn't measured against a
+  /// whole one. The chart still shows each month in full (up to today).
+  static PeriodComparison compareMonths(List<Expense> expenses, DateTime month, DateTime other, DateTime now) {
+    final today = _day(now);
+    final thisMonth = DateTime(today.year, today.month);
+    final a = DateTime(month.year, month.month);
+    final b = DateTime(other.year, other.month);
+    final cutoff = (a == thisMonth || b == thisMonth) ? today.day : null;
+
+    DateTime end(DateTime first) {
+      final days = _daysInMonth(first.year, first.month);
+      return DateTime(first.year, first.month, cutoff == null || cutoff > days ? days : cutoff);
+    }
+
+    return _build(
+      expenses,
+      ComparePeriod.month,
+      a,
+      end(a),
+      b,
+      end(b),
+      _runningSeries(expenses, a, today),
+      _runningSeries(expenses, b, today),
+    );
+  }
+
+  static PeriodComparison _build(
+    List<Expense> expenses,
+    ComparePeriod period,
+    DateTime curStart,
+    DateTime curEnd,
+    DateTime prevStart,
+    DateTime prevEnd,
+    List<double?> curSeries,
+    List<double?> prevSeries,
+  ) {
     bool within(Expense e, DateTime start, DateTime end) {
       final d = _day(e.expenseDate);
       return !d.isBefore(start) && !d.isAfter(end);
     }
 
-    final current = expenses.where((e) => within(e, curStart, today)).toList();
+    final current = expenses.where((e) => within(e, curStart, curEnd)).toList();
     final previous = expenses.where((e) => within(e, prevStart, prevEnd)).toList();
-
-    final (curSeries, prevSeries) = switch (period) {
-      ComparePeriod.day => (const <double?>[], const <double>[]),
-      ComparePeriod.week => _weekSeries(expenses, curStart, today),
-      ComparePeriod.month => _monthSeries(expenses, today),
-    };
-
     return PeriodComparison(
       period: period,
       currentStart: curStart,
-      currentEnd: today,
+      currentEnd: curEnd,
       previousStart: prevStart,
       previousEnd: prevEnd,
       currentTotal: _sum(current),
@@ -115,7 +155,7 @@ abstract final class ExpenseComparison {
   static double _sum(Iterable<Expense> list) => list.fold(0.0, (s, e) => s + e.amount);
 
   /// Per-weekday totals: this week (null after today) and all of last week.
-  static (List<double?>, List<double>) _weekSeries(List<Expense> expenses, DateTime monday, DateTime today) {
+  static (List<double?>, List<double?>) _weekSeries(List<Expense> expenses, DateTime monday, DateTime today) {
     final lastMonday = monday.subtract(const Duration(days: 7));
     double dayTotal(DateTime day) => _sum(expenses.where((e) => _day(e.expenseDate) == day));
     return (
@@ -124,27 +164,20 @@ abstract final class ExpenseComparison {
     );
   }
 
-  /// Running totals by day of month: this month up to today, all of last month.
-  static (List<double?>, List<double>) _monthSeries(List<Expense> expenses, DateTime today) {
-    List<double> running(int year, int month) {
-      final first = DateTime(year, month); // normalises month 0 → December
-      final perDay = List<double>.filled(_daysInMonth(first.year, first.month), 0);
-      for (final e in expenses) {
-        final d = e.expenseDate;
-        if (d.year == first.year && d.month == first.month) perDay[d.day - 1] += e.amount;
-      }
-      final days = perDay.length;
-      for (var i = 1; i < days; i++) {
-        perDay[i] += perDay[i - 1];
-      }
-      return perDay;
+  /// Running total by day of [month]; days after [today] are null.
+  static List<double?> _runningSeries(List<Expense> expenses, DateTime month, DateTime today) {
+    final perDay = List<double>.filled(_daysInMonth(month.year, month.month), 0);
+    for (final e in expenses) {
+      final d = e.expenseDate;
+      if (d.year == month.year && d.month == month.month) perDay[d.day - 1] += e.amount;
     }
-
-    final thisMonth = running(today.year, today.month);
-    return (
-      [for (var i = 0; i < thisMonth.length; i++) i < today.day ? thisMonth[i] : null],
-      running(today.year, today.month - 1),
-    );
+    for (var i = 1; i < perDay.length; i++) {
+      perDay[i] += perDay[i - 1];
+    }
+    return [
+      for (var i = 0; i < perDay.length; i++)
+        DateTime(month.year, month.month, i + 1).isAfter(today) ? null : perDay[i],
+    ];
   }
 
   static List<CategoryChange> _changes(List<Expense> current, List<Expense> previous) {

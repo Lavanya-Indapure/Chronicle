@@ -688,17 +688,17 @@ abstract final class AppStrings {
   static const String compareMonthSoFar = 'This month so far';
   static const String compareVsYesterday = 'yesterday';
   static const String compareVsLastWeek = 'this point last week';
-  static const String compareVsLastMonth = 'this point last month';
   static const String compareMoreThan = 'more than';
   static const String compareLessThan = 'less than';
   static const String compareSameAs = 'About the same as';
   static const String compareNothingBefore = 'Nothing spent';
   static const String compareNothingBy = 'Nothing spent by';
+  static const String compareNothingIn = 'Nothing spent in';
+  static const String compareFirstMonth = 'Month';
+  static const String compareSecondMonth = 'Compared with';
   static const String compareNoSpending = 'No spending in either period yet';
   static const String compareThisWeek = 'This week';
   static const String compareLastWeek = 'Last week';
-  static const String compareThisMonth = 'This month';
-  static const String compareLastMonth = 'Last month';
   static const String compareDayPrefix = 'Day';
   static const String compareBiggestChanges = 'Biggest changes';
 

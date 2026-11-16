@@ -94,11 +94,16 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       AppSpacing.gapMd,
                       CategorySummaryCard(breakdown: breakdown, onSeeAll: () => openAllCategories(context)),
                     ],
-                    // Day/week/month comparisons are about "now", so only on
-                    // the current month.
-                    if (state.isViewingCurrentMonth && state.expenses.isNotEmpty) ...[
+                    if (state.expenses.isNotEmpty) ...[
                       AppSpacing.gapMd,
-                      ComparisonCard(expenses: state.expenses, colorFor: colorFor),
+                      ComparisonCard(
+                        expenses: state.expenses,
+                        colorFor: colorFor,
+                        // The Month tab starts on the month being viewed.
+                        initialMonth: state.viewMonth,
+                        firstMonth: state.earliestMonth,
+                        lastMonth: state.latestMonth,
+                      ),
                     ],
                     AppSpacing.gapLg,
                     SectionHeader(

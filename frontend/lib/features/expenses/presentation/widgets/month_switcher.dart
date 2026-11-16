@@ -5,6 +5,20 @@ import 'package:chronicle/core/utils/formatters.dart';
 
 /// "‹  November 2026  ›" — arrows step one month; tapping the label opens a
 /// year + month grid to jump straight to any month in [firstMonth]–[lastMonth].
+/// Month grid with a year stepper; returns the first day of the picked month,
+/// or null when dismissed.
+Future<DateTime?> showMonthPicker(
+  BuildContext context, {
+  required DateTime selected,
+  required DateTime firstMonth,
+  required DateTime lastMonth,
+}) {
+  return showModalBottomSheet<DateTime>(
+    context: context,
+    builder: (_) => _MonthPickerSheet(selected: selected, firstMonth: firstMonth, lastMonth: lastMonth),
+  );
+}
+
 class MonthSwitcher extends StatelessWidget {
   final DateTime month;
   final DateTime firstMonth;
@@ -23,10 +37,7 @@ class MonthSwitcher extends StatelessWidget {
   bool get _canGoForward => month.isBefore(lastMonth);
 
   Future<void> _openPicker(BuildContext context) async {
-    final picked = await showModalBottomSheet<DateTime>(
-      context: context,
-      builder: (_) => _MonthPickerSheet(selected: month, firstMonth: firstMonth, lastMonth: lastMonth),
-    );
+    final picked = await showMonthPicker(context, selected: month, firstMonth: firstMonth, lastMonth: lastMonth);
     if (picked != null) onMonthSelected(picked);
   }
 

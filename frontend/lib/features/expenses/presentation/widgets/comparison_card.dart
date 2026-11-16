@@ -10,29 +10,91 @@ import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 import 'package:chronicle/features/expenses/domain/expense_comparison.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/month_switcher.dart';
 
 /// Spending more is flagged in warning orange, spending less in green.
 const _moreColor = AppColors.warning;
 const _lessColor = AppColors.success;
 const _currentColor = AppColors.chartBlue;
 
-/// "Compare" card: today / this week / this month so far vs the same stretch
-/// of the previous period, with a chart and the categories that moved most.
+/// "Compare" card: today vs yesterday, this week vs last week (both "so
+/// far", like for like), or any two months picked by the user — with a
+/// chart and the categories that moved most.
 class ComparisonCard extends StatefulWidget {
   final List<Expense> expenses;
   final Color Function(String? categoryId) colorFor;
 
+  /// Month the Month tab starts on (compared with the month before it).
+  final DateTime initialMonth;
+
+  /// Range the month pickers allow.
+  final DateTime firstMonth;
+  final DateTime lastMonth;
+
   /// Injected for tests; defaults to now.
   final DateTime? now;
 
-  const ComparisonCard({super.key, required this.expenses, required this.colorFor, this.now});
+  const ComparisonCard({
+    super.key,
+    required this.expenses,
+    required this.colorFor,
+    required this.initialMonth,
+    required this.firstMonth,
+    required this.lastMonth,
+    this.now,
+  });
 
   @override
   State<ComparisonCard> createState() => _ComparisonCardState();
 }
 
 class _ComparisonCardState extends State<ComparisonCard> {
-  ComparePeriod _period = ComparePeriod.week;
+  late ComparePeriod _period;
+  late DateTime _month; // shown as "this"
+  late DateTime _other; // compared against
+
+  DateTime get _now => widget.now ?? DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _resetMonths();
+    // Day/week are about "now"; when looking at a past month start on Month.
+    final current = DateTime(_now.year, _now.month);
+    _period = _month == current ? ComparePeriod.week : ComparePeriod.month;
+  }
+
+  @override
+  void didUpdateWidget(ComparisonCard old) {
+    super.didUpdateWidget(old);
+    // Follow the month switcher at the top of the screen.
+    if (old.initialMonth != widget.initialMonth) _resetMonths();
+  }
+
+  void _resetMonths() {
+    _month = DateTime(widget.initialMonth.year, widget.initialMonth.month);
+    _other = DateTime(_month.year, _month.month - 1);
+  }
+
+  Future<void> _pick({required bool first}) async {
+    final picked = await showMonthPicker(
+      context,
+      selected: first ? _month : _other,
+      firstMonth: widget.firstMonth,
+      lastMonth: widget.lastMonth,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      // Picking the month already on the other side swaps them.
+      if (first) {
+        if (picked == _other) _other = _month;
+        _month = picked;
+      } else {
+        if (picked == _month) _month = _other;
+        _other = picked;
+      }
+    });
+  }
 
   static String _label(ComparePeriod p) => switch (p) {
         ComparePeriod.day => AppStrings.compareDay,
@@ -43,7 +105,10 @@ class _ComparisonCardState extends State<ComparisonCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final c = ExpenseComparison.compare(widget.expenses, _period, widget.now ?? DateTime.now());
+    final c = _period == ComparePeriod.month
+        ? ExpenseComparison.compareMonths(widget.expenses, _month, _other, _now)
+        : ExpenseComparison.compare(widget.expenses, _period, _now);
+    final hasChartData = [...c.currentSeries, ...c.previousSeries].any((v) => (v ?? 0) > 0);
 
     return SurfaceCard(
       child: Column(
@@ -57,16 +122,25 @@ class _ComparisonCardState extends State<ComparisonCard> {
             selected: _period,
             onChanged: (p) => setState(() => _period = p),
           ),
+          if (_period == ComparePeriod.month) ...[
+            AppSpacing.gapMd,
+            _MonthPair(
+              month: _month,
+              other: _other,
+              onPickMonth: () => _pick(first: true),
+              onPickOther: () => _pick(first: false),
+            ),
+          ],
           AppSpacing.gapMd,
-          _Headline(comparison: c),
-          if (c.period != ComparePeriod.day && (c.currentTotal > 0 || c.previousSeries.any((v) => v > 0))) ...[
+          _Headline(comparison: c, now: _now),
+          if (c.period != ComparePeriod.day && hasChartData) ...[
             AppSpacing.gapMd,
             SizedBox(
               height: AppSpacing.chartHeightCompact,
               child: c.period == ComparePeriod.week ? _WeekBars(comparison: c) : _MonthLines(comparison: c),
             ),
             AppSpacing.gapSm,
-            _Legend(period: c.period),
+            _Legend(comparison: c),
           ],
           if (c.changes.isNotEmpty) ...[
             AppSpacing.gapMd,
@@ -80,26 +154,97 @@ class _ComparisonCardState extends State<ComparisonCard> {
   }
 }
 
+/// "[Nov 2026 ▾]  vs  [Oct 2026 ▾]"
+class _MonthPair extends StatelessWidget {
+  final DateTime month;
+  final DateTime other;
+  final VoidCallback onPickMonth;
+  final VoidCallback onPickOther;
+
+  const _MonthPair({required this.month, required this.other, required this.onPickMonth, required this.onPickOther});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget button(DateTime m, Color dot, VoidCallback onTap, String semantics) => Expanded(
+          child: Semantics(
+            button: true,
+            label: '$semantics: ${monthLabel(m)}',
+            excludeSemantics: true,
+            child: OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: AppSpacing.accentDotSize,
+                    height: AppSpacing.accentDotSize,
+                    decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                  ),
+                  AppSpacing.hGapXs,
+                  Flexible(child: Text(monthLabel(m), overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.arrow_drop_down_rounded),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    return Row(
+      children: [
+        button(month, _currentColor, onPickMonth, AppStrings.compareFirstMonth),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: Text(AppStrings.vs, style: theme.textTheme.bodySmall),
+        ),
+        button(other, _mutedColor(context), onPickOther, AppStrings.compareSecondMonth),
+      ],
+    );
+  }
+}
+
+/// "Nov 2026".
+String monthLabel(DateTime m) => DateFormat('MMM yyyy').format(m);
+
+Color _mutedColor(BuildContext context) => Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.45);
+
+bool _isWholeMonth(DateTime start, DateTime end) =>
+    start.day == 1 && DateTime(end.year, end.month, end.day + 1).month != end.month;
+
+/// "Nov 2026" for a whole month, else "1–18 Nov".
+String _rangeLabel(DateTime start, DateTime end) =>
+    _isWholeMonth(start, end) ? monthLabel(start) : '${start.day}–${AppFormatters.dayMonth(end)}';
+
 class _Headline extends StatelessWidget {
   final PeriodComparison comparison;
+  final DateTime now;
 
-  const _Headline({required this.comparison});
+  const _Headline({required this.comparison, required this.now});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final c = comparison;
+    final thisMonth = DateTime(now.year, now.month);
     final (String title, String versus) = switch (c.period) {
       ComparePeriod.day => (AppStrings.compareTodaySoFar, AppStrings.compareVsYesterday),
       ComparePeriod.week => (AppStrings.compareWeekSoFar, AppStrings.compareVsLastWeek),
-      ComparePeriod.month => (AppStrings.compareMonthSoFar, AppStrings.compareVsLastMonth),
+      ComparePeriod.month => (
+          c.currentStart == thisMonth ? AppStrings.compareMonthSoFar : _rangeLabel(c.currentStart, c.currentEnd),
+          _rangeLabel(c.previousStart, c.previousEnd),
+        ),
     };
 
     final change = c.change;
     final String detail;
     final Color? detailColor;
     if (change == null) {
-      final nothing = c.period == ComparePeriod.day ? AppStrings.compareNothingBefore : AppStrings.compareNothingBy;
+      final nothing = switch (c.period) {
+        ComparePeriod.day => AppStrings.compareNothingBefore, // "Nothing spent yesterday"
+        ComparePeriod.week => AppStrings.compareNothingBy, // "… by this point last week"
+        ComparePeriod.month => AppStrings.compareNothingIn, // "… in Oct 2026"
+      };
       detail = c.currentTotal > 0 ? '$nothing $versus' : AppStrings.compareNoSpending;
       detailColor = null;
     } else if ((change * 100).round() == 0) {
@@ -149,26 +294,31 @@ class _Headline extends StatelessWidget {
     );
   }
 
-  /// "Yesterday" / "10–13 Nov" / "1–16 Oct".
-  static String _previousLabel(PeriodComparison c) {
-    if (c.period == ComparePeriod.day) return AppStrings.yesterday;
-    final start = AppFormatters.dayMonth(c.previousStart);
-    return c.previousStart == c.previousEnd ? start : '${c.previousStart.day}–${AppFormatters.dayMonth(c.previousEnd)}';
-  }
+  /// "Yesterday" / "9–11 Nov" / "Oct 2026" / "1–18 Oct".
+  static String _previousLabel(PeriodComparison c) => switch (c.period) {
+        ComparePeriod.day => AppStrings.yesterday,
+        ComparePeriod.month => _rangeLabel(c.previousStart, c.previousEnd),
+        ComparePeriod.week => c.previousStart == c.previousEnd
+            ? AppFormatters.dayMonth(c.previousStart)
+            : '${c.previousStart.day}–${AppFormatters.dayMonth(c.previousEnd)}',
+      };
 }
 
-class _Legend extends StatelessWidget {
-  final ComparePeriod period;
+/// Series names: "This week / Last week" or the two months picked.
+(String, String) _seriesNames(PeriodComparison c) => c.period == ComparePeriod.week
+    ? (AppStrings.compareThisWeek, AppStrings.compareLastWeek)
+    : (monthLabel(c.currentStart), monthLabel(c.previousStart));
 
-  const _Legend({required this.period});
+class _Legend extends StatelessWidget {
+  final PeriodComparison comparison;
+
+  const _Legend({required this.comparison});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.45);
-    final (String now, String before) = period == ComparePeriod.week
-        ? (AppStrings.compareThisWeek, AppStrings.compareLastWeek)
-        : (AppStrings.compareThisMonth, AppStrings.compareLastMonth);
+    final muted = _mutedColor(context);
+    final (now, before) = _seriesNames(comparison);
 
     Widget item(Color color, String label) => Row(
           mainAxisSize: MainAxisSize.min,
@@ -198,15 +348,15 @@ class _WeekBars extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final c = comparison;
-    final muted = colors.onSurfaceVariant.withValues(alpha: 0.45);
-    final maxY = [...c.previousSeries, ...c.currentSeries.whereType<double>()].fold<double>(0, math.max);
+    final muted = _mutedColor(context);
+    final maxY = [...c.previousSeries, ...c.currentSeries].whereType<double>().fold<double>(0, math.max);
     final days = [for (var i = 0; i < 7; i++) c.currentStart.add(Duration(days: i))];
 
     return Semantics(
       label: [
         for (var i = 0; i < 7; i++)
           '${DateFormat.E().format(days[i])}: ${AppFormatters.currency(c.currentSeries[i] ?? 0)} '
-              '${AppStrings.vs} ${AppFormatters.currency(c.previousSeries[i])}',
+              '${AppStrings.vs} ${AppFormatters.currency(c.previousSeries[i] ?? 0)}',
       ].join(', '),
       excludeSemantics: true,
       child: BarChart(
@@ -252,7 +402,7 @@ class _WeekBars extends StatelessWidget {
                 x: i,
                 barsSpace: AppSpacing.xs / 2,
                 barRods: [
-                  BarChartRodData(toY: c.previousSeries[i], width: AppSpacing.sm, color: muted, borderRadius: AppSpacing.borderRadiusSm),
+                  BarChartRodData(toY: c.previousSeries[i] ?? 0, width: AppSpacing.sm, color: muted, borderRadius: AppSpacing.borderRadiusSm),
                   BarChartRodData(
                     toY: c.currentSeries[i] ?? 0,
                     width: AppSpacing.sm,
@@ -268,30 +418,33 @@ class _WeekBars extends StatelessWidget {
   }
 }
 
-/// Running total through the month: last month (muted, dashed) and this
-/// month up to today — shows whether you're ahead of last month's pace.
+/// Running total through each month by day of month: the compared month
+/// (muted, dashed) and the main one — shows which month spent faster.
 class _MonthLines extends StatelessWidget {
   final PeriodComparison comparison;
 
   const _MonthLines({required this.comparison});
+
+  static List<FlSpot> _spots(List<double?> series) => [
+        for (var i = 0; i < series.length; i++)
+          if (series[i] != null) FlSpot(i + 1.0, series[i]!),
+      ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final c = comparison;
-    final muted = colors.onSurfaceVariant.withValues(alpha: 0.45);
-    final current = [
-      for (var i = 0; i < c.currentSeries.length; i++)
-        if (c.currentSeries[i] != null) FlSpot(i + 1.0, c.currentSeries[i]!),
-    ];
-    final previous = [for (var i = 0; i < c.previousSeries.length; i++) FlSpot(i + 1.0, c.previousSeries[i])];
+    final muted = _mutedColor(context);
+    final (currentName, previousName) = _seriesNames(c);
+    final current = _spots(c.currentSeries);
+    final previous = _spots(c.previousSeries);
     final maxX = math.max(c.currentSeries.length, c.previousSeries.length).toDouble();
-    final maxY = [...c.previousSeries, ...c.currentSeries.whereType<double>()].fold<double>(0, math.max);
+    final maxY = [...c.previousSeries, ...c.currentSeries].whereType<double>().fold<double>(0, math.max);
 
     return Semantics(
-      label: '${AppStrings.compareThisMonth}: ${AppFormatters.currency(c.currentTotal)}, '
-          '${AppStrings.compareLastMonth}: ${AppFormatters.currency(c.previousSeries.lastOrNull ?? 0)}',
+      label: '$currentName: ${AppFormatters.currency(current.lastOrNull?.y ?? 0)}, '
+          '$previousName: ${AppFormatters.currency(previous.lastOrNull?.y ?? 0)}',
       excludeSemantics: true,
       child: LineChart(
         LineChartData(
@@ -328,7 +481,7 @@ class _MonthLines extends StatelessWidget {
               getTooltipItems: (spots) => [
                 for (final s in spots)
                   LineTooltipItem(
-                    '${s.barIndex == 0 ? AppStrings.compareLastMonth : AppStrings.compareThisMonth} · '
+                    '${s.barIndex == 0 ? previousName : currentName} · '
                     '${AppStrings.compareDayPrefix} ${s.x.toInt()}\n${AppFormatters.currency(s.y)}',
                     theme.textTheme.labelSmall!.copyWith(color: colors.onInverseSurface),
                   ),
