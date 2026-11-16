@@ -141,6 +141,19 @@ void main() {
       );
     });
 
+    test('date columns use calendar days; timestamp columns use local-midnight instants', () {
+      final range = SearchDateRange(DateTime(2026, 11, 16, 9), DateTime(2026, 11, 16, 20));
+      final plans = SearchQueryBuilder.build(SearchRequest(
+        dateRange: range,
+        modules: const {SearchModule.expenses, SearchModule.thoughts},
+      ));
+      final expenses = plans.firstWhere((p) => p.module == SearchModule.expenses);
+      final thoughts = plans.firstWhere((p) => p.module == SearchModule.thoughts);
+      expect((expenses.dateFrom, expenses.dateBefore), ('2026-11-16', '2026-11-17'));
+      expect(thoughts.dateFrom, DateTime(2026, 11, 16).toUtc().toIso8601String());
+      expect(thoughts.dateBefore, DateTime(2026, 11, 17).toUtc().toIso8601String());
+    });
+
     test('plans carry text, date range (end exclusive), tags (all spellings) and category', () {
       final plans = SearchQueryBuilder.build(
         SearchRequest(
@@ -156,8 +169,9 @@ void main() {
       expect(plans.map((p) => p.module), [SearchModule.books]);
       final books = plans.single;
       expect(books.textFilter, startsWith('name.ilike."%run%"'));
-      expect(books.dateFrom, '2026-11-01');
-      expect(books.dateBefore, '2026-12-01');
+      // books.created_at is a timestamp → local-midnight instants, not UTC days.
+      expect(books.dateFrom, DateTime(2026, 11, 1).toUtc().toIso8601String());
+      expect(books.dateBefore, DateTime(2026, 12, 1).toUtc().toIso8601String());
       expect(books.tagsOverlap, '{"Career","career"}');
       expect(books.categoryId, isNull);
 

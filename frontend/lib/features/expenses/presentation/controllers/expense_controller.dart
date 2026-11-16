@@ -5,6 +5,7 @@ import 'package:chronicle/core/errors/app_exception.dart';
 import 'package:chronicle/core/services/logger_service.dart';
 import 'package:chronicle/features/expenses/data/datasources/expense_remote_datasource.dart';
 import 'package:chronicle/features/expenses/data/repositories/expense_repository_impl.dart';
+import 'package:chronicle/features/expenses/domain/expense_comparison.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/budget.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
@@ -230,7 +231,15 @@ class ExpenseState {
 
   List<Expense> get viewMonthExpenses => expensesInMonth(viewMonth);
   double get viewMonthSpent => _sum(viewMonthExpenses);
-  double get previousMonthSpent => _sum(expensesInMonth(DateTime(viewMonth.year, viewMonth.month - 1)));
+  /// The month before [viewMonth]. For the current month only up to the same
+  /// day ("like for like"), so a half-finished month isn't compared against
+  /// a whole one.
+  double get previousMonthSpent {
+    if (isViewingCurrentMonth) {
+      return ExpenseComparison.compare(expenses, ComparePeriod.month, DateTime.now()).previousTotal;
+    }
+    return _sum(expensesInMonth(DateTime(viewMonth.year, viewMonth.month - 1)));
+  }
   double get viewMonthNonEssential => _sum(viewMonthExpenses.where((e) => !e.isNecessary));
 
   /// Average per day: over days elapsed for the current month, else the

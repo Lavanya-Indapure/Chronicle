@@ -678,6 +678,30 @@ abstract final class AppStrings {
   static const String visionMilestonesUnavailable =
       'Milestones aren’t set up yet. Run the vision milestones migration in Supabase to enable them.';
 
+  // ── Expense comparisons ──
+  static const String compareTitle = 'Compare';
+  static const String compareDay = 'Day';
+  static const String compareWeek = 'Week';
+  static const String compareMonth = 'Month';
+  static const String compareTodaySoFar = 'Today so far';
+  static const String compareWeekSoFar = 'This week so far';
+  static const String compareMonthSoFar = 'This month so far';
+  static const String compareVsYesterday = 'yesterday';
+  static const String compareVsLastWeek = 'this point last week';
+  static const String compareVsLastMonth = 'this point last month';
+  static const String compareMoreThan = 'more than';
+  static const String compareLessThan = 'less than';
+  static const String compareSameAs = 'About the same as';
+  static const String compareNothingBefore = 'Nothing spent';
+  static const String compareNothingBy = 'Nothing spent by';
+  static const String compareNoSpending = 'No spending in either period yet';
+  static const String compareThisWeek = 'This week';
+  static const String compareLastWeek = 'Last week';
+  static const String compareThisMonth = 'This month';
+  static const String compareLastMonth = 'Last month';
+  static const String compareDayPrefix = 'Day';
+  static const String compareBiggestChanges = 'Biggest changes';
+
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';
   static const String invalidEmail = 'Please enter a valid email';

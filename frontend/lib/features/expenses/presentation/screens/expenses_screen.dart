@@ -17,6 +17,7 @@ import 'package:chronicle/features/expenses/presentation/screens/transaction_his
 import 'package:chronicle/features/expenses/presentation/widgets/budget_dialogs.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/category_summary_card.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/category_visuals.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/comparison_card.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/debts_summary_row.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/expense_detail_sheet.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/expense_list_tile.dart';
@@ -92,6 +93,12 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                     if (breakdown.isNotEmpty) ...[
                       AppSpacing.gapMd,
                       CategorySummaryCard(breakdown: breakdown, onSeeAll: () => openAllCategories(context)),
+                    ],
+                    // Day/week/month comparisons are about "now", so only on
+                    // the current month.
+                    if (state.isViewingCurrentMonth && state.expenses.isNotEmpty) ...[
+                      AppSpacing.gapMd,
+                      ComparisonCard(expenses: state.expenses, colorFor: colorFor),
                     ],
                     AppSpacing.gapLg,
                     SectionHeader(

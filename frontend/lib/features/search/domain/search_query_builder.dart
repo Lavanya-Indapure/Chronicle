@@ -68,8 +68,8 @@ abstract final class SearchQueryBuilder {
         SearchPlan(
           module: m,
           textFilter: text == null ? null : orIlike(m.spec.textColumns, text),
-          dateFrom: range == null ? null : dateString(range.start),
-          dateBefore: range == null ? null : dateString(_day(range.end).add(const Duration(days: 1))),
+          dateFrom: range == null ? null : dateBound(m, _day(range.start)),
+          dateBefore: range == null ? null : dateBound(m, _day(range.end).add(const Duration(days: 1))),
           tagsOverlap: m.taggable ? tags : null,
           categoryId: m == SearchModule.expenses ? r.categoryId : null,
         ),
@@ -122,6 +122,14 @@ abstract final class SearchQueryBuilder {
     }
     return map;
   }
+
+  /// Lower/upper bound for [m]'s date column at local midnight of [day].
+  /// `date` columns take `yyyy-MM-dd`; timestamp columns (`*_at`) take the
+  /// exact instant, so "16 Nov" means 16 Nov in the user's time zone rather
+  /// than UTC (otherwise anything logged 00:00–05:30 IST lands on the day
+  /// before).
+  static String dateBound(SearchModule m, DateTime day) =>
+      m.spec.dateColumn.endsWith('_at') ? day.toUtc().toIso8601String() : dateString(day);
 
   static String dateString(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
