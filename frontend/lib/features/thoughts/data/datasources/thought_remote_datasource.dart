@@ -16,7 +16,7 @@ class ThoughtRemoteDatasource {
     }
   }
 
-  Future<void> createThought(String content, String? tags) async {
+  Future<void> createThought(String content, List<String> tags) async {
     try {
       final userId = _client.auth.currentUser!.id;
       await _client.from('thoughts').insert({
@@ -29,7 +29,7 @@ class ThoughtRemoteDatasource {
     }
   }
 
-  Future<void> updateThought(String id, String content, String? tags) async {
+  Future<void> updateThought(String id, String content, List<String> tags) async {
     try {
       await _client.from('thoughts').update({
         'content': content,

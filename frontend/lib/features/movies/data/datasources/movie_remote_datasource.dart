@@ -27,9 +27,9 @@ class MovieRemoteDatasource {
     }
   }
 
-  Future<void> updateMovie(String id, Movie movie) async {
+  Future<void> updateMovie(String id, Movie movie, {List<String> previousTags = const []}) async {
     try {
-      final movieData = movie.toJson();
+      final movieData = movie.toJson(previousTags: previousTags);
       movieData['updated_at'] = DateTime.now().toIso8601String();
       await _client.from('movies').update(movieData).eq('id', id);
     } catch (e) {

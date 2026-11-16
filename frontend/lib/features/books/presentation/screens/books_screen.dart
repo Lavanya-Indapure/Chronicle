@@ -7,6 +7,8 @@ import 'package:chronicle/core/widgets/app_search_field.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/core/widgets/tag_filter_row.dart';
+import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/features/books/domain/models/book.dart';
 import 'package:chronicle/features/books/presentation/controllers/book_controller.dart';
 import 'package:chronicle/features/books/presentation/widgets/add_book_sheet.dart';
@@ -66,6 +68,10 @@ class BooksScreen extends ConsumerWidget {
               onChanged: controller.setStatusFilter,
             ),
           ),
+          if (state.allTags.isNotEmpty) ...[
+            AppSpacing.gapMd,
+            TagFilterRow(tags: state.allTags, selected: state.selectedTag, onSelected: controller.setSelectedTag),
+          ],
           Expanded(
             child: state.isLoading && state.books.isEmpty
                 ? const Center(child: CircularProgressIndicator())
@@ -172,6 +178,7 @@ class _BookCard extends StatelessWidget {
                           color: completed ? AppColors.success : AppColors.info,
                         ),
                         if (book.rating != null) StarRatingDisplay(rating: book.rating!),
+                        for (final tag in book.tags) TagPill(text: '#$tag', color: AppColors.chartOrchid),
                       ],
                     ),
                   ],

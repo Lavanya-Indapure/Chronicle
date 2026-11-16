@@ -6,8 +6,9 @@ class AppSearchField extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onChanged;
   final TextEditingController? controller;
+  final bool autofocus;
 
-  const AppSearchField({super.key, required this.hint, required this.onChanged, this.controller});
+  const AppSearchField({super.key, required this.hint, required this.onChanged, this.controller, this.autofocus = false});
 
   @override
   Widget build(BuildContext context) {
@@ -17,6 +18,7 @@ class AppSearchField extends StatelessWidget {
 
     return TextField(
       controller: controller,
+      autofocus: autofocus,
       onChanged: onChanged,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(

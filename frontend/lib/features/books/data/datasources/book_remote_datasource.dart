@@ -23,6 +23,7 @@ class BookRemoteDatasource {
     String status = 'reading',
     double? rating,
     bool isFavorite = false,
+    List<String>? tags,
   }) async {
     try {
       final userId = _client.auth.currentUser!.id;
@@ -34,6 +35,7 @@ class BookRemoteDatasource {
         'status': status,
         'rating': rating,
         'is_favorite': isFavorite,
+        'tags': ?tags,
       });
     } catch (e) {
       throw AppException('Failed to create book: $e');
@@ -48,6 +50,7 @@ class BookRemoteDatasource {
     required String status,
     double? rating,
     required bool isFavorite,
+    List<String>? tags,
   }) async {
     try {
       await _client.from('books').update({
@@ -57,6 +60,7 @@ class BookRemoteDatasource {
         'status': status,
         'rating': rating,
         'is_favorite': isFavorite,
+        'tags': ?tags,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', id);
     } catch (e) {

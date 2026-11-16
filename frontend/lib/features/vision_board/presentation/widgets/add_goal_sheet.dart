@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/widgets/draft_form_mixin.dart';
 import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/features/vision_board/presentation/controllers/vision_board_controller.dart';
@@ -9,7 +10,11 @@ import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 class AddGoalSheet extends ConsumerStatefulWidget {
   final VisionGoal? goal;
 
-  const AddGoalSheet({super.key, this.goal});
+  /// The goal has milestones, so progress is computed from them and the
+  /// manual slider is replaced by a hint.
+  final bool progressFromMilestones;
+
+  const AddGoalSheet({super.key, this.goal, this.progressFromMilestones = false});
 
   @override
   ConsumerState<AddGoalSheet> createState() => _AddGoalSheetState();
@@ -217,14 +222,20 @@ class _AddGoalSheetState extends ConsumerState<AddGoalSheet> with DraftFormMixin
               AppSpacing.gapLg,
               if (widget.goal != null) ...[
                 Text('Progress (${_progress}%)', style: theme.textTheme.labelMedium),
-                Slider(
-                  value: _progress.toDouble(),
-                  min: 0,
-                  max: 100,
-                  divisions: 20,
-                  label: '$_progress%',
-                  onChanged: (v) => setState(() => _progress = v.toInt()),
-                ),
+                if (widget.progressFromMilestones)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                    child: Text(AppStrings.visionProgressFromMilestonesHint, style: theme.textTheme.bodySmall),
+                  )
+                else
+                  Slider(
+                    value: _progress.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    label: '$_progress%',
+                    onChanged: (v) => setState(() => _progress = v.toInt()),
+                  ),
                 AppSpacing.gapSm,
                 DropdownButtonFormField<String>(
                     isExpanded: true, // ellipsize long labels instead of overflowing

@@ -5,6 +5,7 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/widgets/app_search_field.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
+import 'package:chronicle/core/widgets/tag_filter_row.dart';
 import 'package:chronicle/features/life_lessons/domain/models/life_lesson.dart';
 import 'package:chronicle/features/life_lessons/presentation/controllers/life_lesson_controller.dart';
 import 'package:chronicle/features/life_lessons/presentation/widgets/life_lesson_card.dart';
@@ -68,7 +69,7 @@ class LifeLessonsScreen extends ConsumerWidget {
                       child: AppSearchField(hint: AppStrings.lifeLessonsSearchHint, onChanged: controller.setSearchQuery),
                     ),
                     if (state.allTags.isNotEmpty) ...[
-                      LessonTagFilterRow(
+                      TagFilterRow(
                         tags: state.allTags,
                         selected: state.selectedTag,
                         onSelected: controller.setSelectedTag,

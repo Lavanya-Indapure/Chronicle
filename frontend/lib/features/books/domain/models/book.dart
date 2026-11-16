@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:chronicle/core/utils/tags.dart';
 
 class Book extends Equatable {
   final String id;
@@ -9,6 +10,7 @@ class Book extends Equatable {
   final String status;
   final double? rating;
   final bool isFavorite;
+  final List<String> tags;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -21,6 +23,7 @@ class Book extends Equatable {
     required this.status,
     this.rating,
     required this.isFavorite,
+    this.tags = const [],
     required this.createdAt,
     required this.updatedAt,
   });
@@ -35,11 +38,12 @@ class Book extends Equatable {
       status: json['status'] ?? 'reading',
       rating: (json['rating'] as num?)?.toDouble(),
       isFavorite: json['is_favorite'] ?? false,
+      tags: TagUtils.fromJson(json['tags']),
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
     );
   }
 
   @override
-  List<Object?> get props => [id, userId, name, author, takeaways, status, rating, isFavorite, createdAt, updatedAt];
+  List<Object?> get props => [id, userId, name, author, takeaways, status, rating, isFavorite, tags, createdAt, updatedAt];
 }

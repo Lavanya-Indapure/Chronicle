@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/errors/app_exception.dart';
 import 'package:chronicle/core/providers/supabase_provider.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/features/life_lessons/data/datasources/life_lesson_remote_datasource.dart';
 import 'package:chronicle/features/life_lessons/data/repositories/life_lesson_repository_impl.dart';
 import 'package:chronicle/features/life_lessons/domain/models/life_lesson.dart';
@@ -61,15 +62,7 @@ class LifeLessonState extends Equatable {
   }
 
   /// Every tag in use, de-duplicated case-insensitively and sorted.
-  List<String> get allTags {
-    final byLower = <String, String>{};
-    for (final l in lessons) {
-      for (final t in l.tags) {
-        byLower.putIfAbsent(t.toLowerCase(), () => t);
-      }
-    }
-    return byLower.values.toList()..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-  }
+  List<String> get allTags => TagUtils.collect(lessons.map((l) => l.tags));
 
   @override
   List<Object?> get props => [isLoading, errorMessage, lessons, searchQuery, onlyFavorites, selectedTag];

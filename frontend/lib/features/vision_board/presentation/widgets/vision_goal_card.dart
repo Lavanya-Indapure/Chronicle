@@ -6,6 +6,7 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
 import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
+import 'package:chronicle/features/vision_board/domain/models/vision_milestone.dart';
 
 /// Label + colour for a goal's status string.
 (String, Color) goalStatusStyle(String status, ColorScheme colors) => switch (status) {
@@ -19,7 +20,10 @@ import 'package:chronicle/features/vision_board/domain/models/vision_goal.dart';
 class VisionGoalCard extends StatelessWidget {
   final VisionGoal goal;
 
-  const VisionGoalCard({super.key, required this.goal});
+  /// Done/total milestones, shown as "3/5 milestones" when present.
+  final MilestoneCount? milestones;
+
+  const VisionGoalCard({super.key, required this.goal, this.milestones});
 
   @override
   Widget build(BuildContext context) {
@@ -73,8 +77,14 @@ class VisionGoalCard extends StatelessWidget {
               AppSpacing.hGapXs,
               Expanded(
                 child: Text(
-                  goal.targetDate != null ? DateFormat('MMM yyyy').format(goal.targetDate!) : AppStrings.noDeadline,
+                  [
+                    goal.targetDate != null ? DateFormat('MMM yyyy').format(goal.targetDate!) : AppStrings.noDeadline,
+                    if (milestones != null && milestones!.total > 0)
+                      '${milestones!.done}/${milestones!.total} ${AppStrings.visionMilestonesShort}',
+                  ].join(' · '),
                   style: theme.textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               _Tag(text: statusLabel, color: statusColor),

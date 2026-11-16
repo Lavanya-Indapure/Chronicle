@@ -6,7 +6,9 @@ import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/draft_form_mixin.dart';
 import 'package:chronicle/core/widgets/draft_restored_banner.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/tags_field.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/core/widgets/star_rating.dart';
 import 'package:chronicle/features/movies/domain/models/movie.dart';
@@ -29,6 +31,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
   late final _costController = TextEditingController(text: _formatCost(widget.movie?.cost));
   late final _commentsController = TextEditingController(text: widget.movie?.comments);
   late final _takeawaysController = TextEditingController(text: widget.movie?.takeaways);
+  late final _tagsController = TextEditingController(text: TagUtils.format(widget.movie?.tags ?? const []));
 
   late DateTime _watchDate = widget.movie?.watchDate ?? DateTime.now();
   late String _platform = widget.movie?.platform ?? MoviePlatform.digital;
@@ -54,6 +57,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
         'cost': _costController.text,
         'comments': _commentsController.text,
         'takeaways': _takeawaysController.text,
+        'tags': _tagsController.text,
         'watchDate': _watchDate,
         'platform': _platform,
         'rating': _rating,
@@ -67,6 +71,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
     _costController.text = draft['cost'] as String? ?? _formatCost(m?.cost) ?? '';
     _commentsController.text = draft['comments'] as String? ?? m?.comments ?? '';
     _takeawaysController.text = draft['takeaways'] as String? ?? m?.takeaways ?? '';
+    _tagsController.text = draft['tags'] as String? ?? TagUtils.format(m?.tags ?? const []);
     _watchDate = draft['watchDate'] as DateTime? ?? m?.watchDate ?? DateTime.now();
     _platform = draft['platform'] as String? ?? m?.platform ?? MoviePlatform.digital;
     _rating = draft['rating'] as int? ?? m?.rating ?? 3;
@@ -84,6 +89,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
     _costController.dispose();
     _commentsController.dispose();
     _takeawaysController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -111,6 +117,7 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
       cost: _isTheatre ? double.tryParse(_costController.text.trim()) : null,
       comments: _orNull(_commentsController),
       takeaways: _orNull(_takeawaysController),
+      tags: TagUtils.parse(_tagsController.text),
     );
     final controller = ref.read(movieControllerProvider.notifier);
     final ok = _isEditing ? await controller.updateMovie(widget.movie!.id, movie) : await controller.createMovie(movie);
@@ -237,6 +244,8 @@ class _AddMovieSheetState extends ConsumerState<AddMovieSheet> with DraftFormMix
               minLines: 2,
               maxLines: 4,
             ),
+            AppSpacing.gapMd,
+            TagsField(controller: _tagsController),
             AppSpacing.gapLg,
             FilledButton(
               onPressed: _isSubmitting ? null : _submit,

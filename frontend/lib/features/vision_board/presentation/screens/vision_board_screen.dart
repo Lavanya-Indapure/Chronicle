@@ -99,7 +99,10 @@ class VisionBoardScreen extends ConsumerWidget {
                         ),
                         itemCount: goals.length,
                         separatorBuilder: (_, _) => AppSpacing.gapMd,
-                        itemBuilder: (context, index) => VisionGoalCard(goal: goals[index]),
+                        itemBuilder: (context, index) => VisionGoalCard(
+                          goal: goals[index],
+                          milestones: state.milestoneCounts[goals[index].id],
+                        ),
                       ),
           ),
         ],

@@ -11,10 +11,10 @@ class ThoughtRepositoryImpl implements ThoughtRepository {
   Future<List<Thought>> getThoughts() => _datasource.getThoughts();
 
   @override
-  Future<void> createThought(String content, String? tags) => _datasource.createThought(content, tags);
+  Future<void> createThought(String content, List<String> tags) => _datasource.createThought(content, tags);
 
   @override
-  Future<void> updateThought(String id, String content, String? tags) => _datasource.updateThought(id, content, tags);
+  Future<void> updateThought(String id, String content, List<String> tags) => _datasource.updateThought(id, content, tags);
 
   @override
   Future<void> deleteThought(String id) => _datasource.deleteThought(id);

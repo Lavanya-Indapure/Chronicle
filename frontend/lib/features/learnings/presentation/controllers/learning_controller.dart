@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:equatable/equatable.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/features/learnings/domain/models/learning.dart';
 import 'package:chronicle/features/learnings/data/repositories/learning_repository_impl.dart';
 
@@ -8,30 +9,45 @@ class LearningState extends Equatable {
   final bool isLoading;
   final List<Learning> learnings;
   final String searchQuery;
-  
+  final String? selectedTag;
+
   const LearningState({
     this.isLoading = false,
     this.learnings = const [],
     this.searchQuery = '',
+    this.selectedTag,
   });
 
   List<Learning> get filteredLearnings {
-    if (searchQuery.isEmpty) return learnings;
-    return learnings.where((l) => 
-      l.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-      (l.description?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
-    ).toList();
+    final query = searchQuery.toLowerCase();
+    return learnings.where((l) {
+      if (!TagUtils.has(l.tags, selectedTag)) return false;
+      if (query.isEmpty) return true;
+      return l.title.toLowerCase().contains(query) ||
+          (l.description?.toLowerCase().contains(query) ?? false) ||
+          TagUtils.anyContains(l.tags, query);
+    }).toList();
   }
 
-  LearningState copyWith({bool? isLoading, List<Learning>? learnings, String? searchQuery}) {
+  /// Every tag used by any learning, for the tag filter row.
+  List<String> get allTags => TagUtils.collect(learnings.map((l) => l.tags));
+
+  LearningState copyWith({
+    bool? isLoading,
+    List<Learning>? learnings,
+    String? searchQuery,
+    String? selectedTag,
+    bool clearTag = false,
+  }) {
     return LearningState(
       isLoading: isLoading ?? this.isLoading,
       learnings: learnings ?? this.learnings,
       searchQuery: searchQuery ?? this.searchQuery,
+      selectedTag: clearTag ? null : (selectedTag ?? this.selectedTag),
     );
   }
 
-  @override List<Object?> get props => [isLoading, learnings, searchQuery];
+  @override List<Object?> get props => [isLoading, learnings, searchQuery, selectedTag];
 }
 
 final learningRepositoryProvider = Provider((ref) {
@@ -59,6 +75,7 @@ class LearningController extends Notifier<LearningState> {
   }
 
   void setSearchQuery(String query) => state = state.copyWith(searchQuery: query);
+  void setSelectedTag(String? tag) => state = state.copyWith(selectedTag: tag, clearTag: tag == null);
 
   Future<void> addLearning(Learning learning) async {
     await _repository.createLearning(learning);

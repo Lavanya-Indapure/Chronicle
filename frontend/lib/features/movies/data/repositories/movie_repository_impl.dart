@@ -14,7 +14,8 @@ class MovieRepositoryImpl implements MovieRepository {
   Future<void> createMovie(Movie movie) => _datasource.createMovie(movie);
 
   @override
-  Future<void> updateMovie(String id, Movie movie) => _datasource.updateMovie(id, movie);
+  Future<void> updateMovie(String id, Movie movie, {List<String> previousTags = const []}) =>
+      _datasource.updateMovie(id, movie, previousTags: previousTags);
 
   @override
   Future<void> deleteMovie(String id) => _datasource.deleteMovie(id);

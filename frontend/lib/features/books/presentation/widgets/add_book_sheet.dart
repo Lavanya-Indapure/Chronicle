@@ -5,7 +5,9 @@ import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/widgets/draft_form_mixin.dart';
 import 'package:chronicle/core/widgets/draft_restored_banner.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/tags_field.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
 import 'package:chronicle/features/books/domain/models/book.dart';
 import 'package:chronicle/features/books/presentation/controllers/book_controller.dart';
@@ -26,6 +28,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
   late final _nameController = TextEditingController(text: widget.book?.name);
   late final _authorController = TextEditingController(text: widget.book?.author);
   late final _takeawaysController = TextEditingController(text: widget.book?.takeaways);
+  late final _tagsController = TextEditingController(text: TagUtils.format(widget.book?.tags ?? const []));
 
   late String _status = widget.book?.status ?? 'reading';
   late int? _rating = widget.book?.rating?.round();
@@ -43,6 +46,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
         'name': _nameController.text,
         'author': _authorController.text,
         'takeaways': _takeawaysController.text,
+        'tags': _tagsController.text,
         'status': _status,
         'rating': _rating,
         'isFavorite': _isFavorite,
@@ -54,6 +58,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
     _nameController.text = draft['name'] as String? ?? book?.name ?? '';
     _authorController.text = draft['author'] as String? ?? book?.author ?? '';
     _takeawaysController.text = draft['takeaways'] as String? ?? book?.takeaways ?? '';
+    _tagsController.text = draft['tags'] as String? ?? TagUtils.format(book?.tags ?? const []);
     _status = draft['status'] as String? ?? book?.status ?? 'reading';
     _rating = draft.containsKey('rating') ? draft['rating'] as int? : book?.rating?.round();
     _isFavorite = draft['isFavorite'] as bool? ?? book?.isFavorite ?? false;
@@ -70,6 +75,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
     _nameController.dispose();
     _authorController.dispose();
     _takeawaysController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -80,6 +86,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
     setState(() => _isSubmitting = true);
 
     final controller = ref.read(bookControllerProvider.notifier);
+    final tags = TagUtils.forWrite(TagUtils.parse(_tagsController.text), previous: widget.book?.tags ?? const []);
     final ok = _isEditing
         ? await controller.updateBook(
             id: widget.book!.id,
@@ -89,6 +96,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
             status: _status,
             rating: _rating?.toDouble(),
             isFavorite: _isFavorite,
+            tags: tags,
           )
         : await controller.createBook(
             name: _nameController.text.trim(),
@@ -97,6 +105,7 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
             status: _status,
             rating: _rating?.toDouble(),
             isFavorite: _isFavorite,
+            tags: tags,
           );
 
     if (ok) markSubmitted();
@@ -198,6 +207,8 @@ class _AddBookSheetState extends ConsumerState<AddBookSheet> with DraftFormMixin
               minLines: 3,
               maxLines: 5,
             ),
+            AppSpacing.gapMd,
+            TagsField(controller: _tagsController),
             AppSpacing.gapSm,
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

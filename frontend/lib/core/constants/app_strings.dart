@@ -602,6 +602,82 @@ abstract final class AppStrings {
   static const String reminderDuesToCollect = 'to collect';
   static const String reminderDuesToPay = 'to pay';
 
+  // ── Search & tags ──
+  static const String tagsLabel = 'Tags';
+  static const String tagsHint = 'e.g. growth, habits (comma separated)';
+  static const String searchTitle = 'Search';
+  static const String searchEverythingHint = 'Search everything…';
+  static const String searchOpen = 'Search everything';
+  static const String searchMoreSubtitle = 'Find anything you have logged';
+  static const String searchStartTitle = 'Search all of Chronicle';
+  static const String searchStartMessage = 'Type at least 2 letters, or pick a tag or date range.';
+  static const String searchNoMatchesTitle = 'No matches';
+  static const String searchNoMatchesMessage = 'Try different words or fewer filters.';
+  static const String searchErrorTitle = 'Search failed';
+  static const String searchRetry = 'Try again';
+  static const String searchPartialFailure = "Couldn't search:";
+  static const String searchFilters = 'Filters';
+  static const String searchModules = 'Search in';
+  static const String searchAllModules = 'Everything';
+  static const String searchDates = 'Any date';
+  static const String searchClearDates = 'Clear dates';
+  static const String searchTags = 'Tags';
+  static const String searchTagsHint = 'Shows items with any of the selected tags. Only tagged sections are searched.';
+  static const String searchCategory = 'Expense category';
+  static const String searchAnyCategory = 'Any category';
+  static const String searchClearFilters = 'Clear filters';
+  static const String searchShowingFirst = 'Showing the first';
+  static const String searchResult = 'result';
+  static const String searchResults = 'results';
+  static const String searchModuleTodos = 'To-dos';
+  static const String searchModuleExpenses = 'Expenses';
+  static const String searchModuleThoughts = 'Thoughts';
+  static const String searchModuleLearnings = 'Learnings';
+  static const String searchModuleBooks = 'Books';
+  static const String searchModuleMovies = 'Movies';
+  static const String searchModuleLifeLessons = 'Life lessons';
+  static const String searchModuleRestaurants = 'Restaurants';
+  static const String searchModulePlaces = 'Places';
+  static const String searchModuleFirstTimes = 'First times';
+  static const String searchModuleGoals = 'Vision board';
+  static const String searchModuleMisc = 'Miscellaneous';
+  static const String searchModuleMoods = 'Moods';
+  static const String searchUntitled = 'Untitled';
+  static const String searchPhotoOnly = 'Photo';
+
+  // ── Vision milestones ──
+  static const String visionGoalDetailsTitle = 'Goal';
+  static const String visionEditGoal = 'Edit goal';
+  static const String visionDeleteGoalTitle = 'Delete goal?';
+  static const String visionDeleteGoalMessage = 'This removes the goal and its milestones. This can’t be undone.';
+  static const String visionPlanTitle = 'The plan';
+  static const String visionNoPlan = 'No plan written yet — edit the goal to add one.';
+  static const String visionGoalAchieved = 'Goal achieved!';
+  static const String visionTimeline = 'Timeline';
+  static const String visionTarget = 'Target';
+  static const String visionDaysLeft = 'days left';
+  static const String visionTimeUp = 'Time is up!';
+  static const String visionProgressLabel = 'progress';
+  static const String visionProgressFromPrefix = 'Based on';
+  static const String visionProgressFromSuffix = 'milestones done.';
+  static const String visionProgressManualHint = 'Set by hand — edit the goal to change it, or add milestones to track it automatically.';
+  static const String visionProgressFromMilestonesHint = 'Calculated from this goal’s milestones — tick them off on the goal page.';
+  static const String visionMilestonesTitle = 'Milestones';
+  static const String visionMilestonesSubtitle = 'Break the goal into steps';
+  static const String visionMilestonesOf = 'of';
+  static const String visionMilestonesDone = 'done';
+  static const String visionMilestonesShort = 'milestones';
+  static const String visionMilestoneAddHint = 'Add a milestone';
+  static const String visionMilestoneAdd = 'Add';
+  static const String visionMilestoneRename = 'Rename milestone';
+  static const String visionMilestoneSave = 'Save';
+  static const String visionMilestoneReorder = 'Drag to reorder';
+  static const String visionMilestoneDeleteTitle = 'Delete milestone?';
+  static const String visionMilestonesAllDone = 'Every milestone is done. Mark this goal as achieved?';
+  static const String visionMarkAchieved = 'Mark achieved';
+  static const String visionMilestonesUnavailable =
+      'Milestones aren’t set up yet. Run the vision milestones migration in Supabase to enable them.';
+
   // ── Validation ──
   static const String requiredEmail = 'Please enter your email';
   static const String invalidEmail = 'Please enter a valid email';

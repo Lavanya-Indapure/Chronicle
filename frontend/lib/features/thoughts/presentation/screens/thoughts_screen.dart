@@ -7,6 +7,7 @@ import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/app_search_field.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/core/widgets/tag_filter_row.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/features/thoughts/domain/models/thought.dart';
 import 'package:chronicle/features/thoughts/presentation/controllers/thought_controller.dart';
@@ -69,7 +70,7 @@ class ThoughtsScreen extends ConsumerWidget {
                       child: AppSearchField(hint: AppStrings.thoughtsSearchHint, onChanged: controller.setSearchQuery),
                     ),
                     if (state.allTags.isNotEmpty) ...[
-                      _TagFilterRow(
+                      TagFilterRow(
                         tags: state.allTags,
                         selected: state.selectedTag,
                         onSelected: controller.setSelectedTag,
@@ -109,45 +110,6 @@ class ThoughtsScreen extends ConsumerWidget {
   }
 }
 
-/// Horizontal "All · #life · #motivation" filter chips.
-class _TagFilterRow extends StatelessWidget {
-  final List<String> tags;
-  final String? selected;
-  final ValueChanged<String?> onSelected;
-
-  const _TagFilterRow({required this.tags, required this.selected, required this.onSelected});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: AppSpacing.xxl - AppSpacing.xs,
-      child: ListView.separated(
-        padding: AppSpacing.paddingGutter,
-        scrollDirection: Axis.horizontal,
-        itemCount: tags.length + 1,
-        separatorBuilder: (_, _) => AppSpacing.hGapSm,
-        itemBuilder: (context, index) {
-          if (index == 0) {
-            return ChoiceChip(
-              showCheckmark: false,
-              label: const Text(AppStrings.journalAll),
-              selected: selected == null,
-              onSelected: (_) => onSelected(null),
-            );
-          }
-          final tag = tags[index - 1];
-          return ChoiceChip(
-            showCheckmark: false,
-            label: Text('#$tag'),
-            selected: selected == tag,
-            onSelected: (v) => onSelected(v ? tag : null),
-          );
-        },
-      ),
-    );
-  }
-}
-
 class _ThoughtCard extends StatelessWidget {
   final Thought thought;
   final VoidCallback onTap;
@@ -159,7 +121,6 @@ class _ThoughtCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final tags = thought.tags?.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList() ?? const [];
 
     return SurfaceCard(
       onTap: onTap,
@@ -203,7 +164,7 @@ class _ThoughtCard extends StatelessWidget {
                   child: Wrap(
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,
-                    children: [for (final tag in tags) TagPill(text: '#$tag', color: AppColors.chartBlue)],
+                    children: [for (final tag in thought.tags) TagPill(text: '#$tag', color: AppColors.chartBlue)],
                   ),
                 ),
                 AppSpacing.hGapSm,

@@ -142,6 +142,7 @@ class _FakeBookController extends BookController {
     String status = 'reading',
     double? rating,
     bool isFavorite = false,
+    List<String>? tags,
   }) async {
     _savedBooks.add(name);
     return true;
@@ -156,6 +157,7 @@ class _FakeBookController extends BookController {
     required String status,
     double? rating,
     required bool isFavorite,
+    List<String>? tags,
   }) async {
     _savedBooks.add(name);
     return true;

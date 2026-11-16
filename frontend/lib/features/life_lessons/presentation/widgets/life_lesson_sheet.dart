@@ -4,7 +4,9 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/widgets/draft_form_mixin.dart';
 import 'package:chronicle/core/widgets/draft_restored_banner.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/tags_field.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/features/life_lessons/domain/models/life_lesson.dart';
 import 'package:chronicle/features/life_lessons/presentation/controllers/life_lesson_controller.dart';
@@ -23,7 +25,7 @@ class _LifeLessonSheetState extends ConsumerState<LifeLessonSheet> with DraftFor
   final _formKey = GlobalKey<FormState>();
   late final _titleController = TextEditingController(text: widget.lesson?.title);
   late final _contentController = TextEditingController(text: widget.lesson?.content);
-  late final _tagsController = TextEditingController(text: widget.lesson?.tags.join(', '));
+  late final _tagsController = TextEditingController(text: TagUtils.format(widget.lesson?.tags ?? const []));
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.lesson != null;
@@ -44,7 +46,7 @@ class _LifeLessonSheetState extends ConsumerState<LifeLessonSheet> with DraftFor
   void restoreDraft(Map<String, Object?> draft) {
     _titleController.text = draft['title'] as String? ?? widget.lesson?.title ?? '';
     _contentController.text = draft['content'] as String? ?? widget.lesson?.content ?? '';
-    _tagsController.text = draft['tags'] as String? ?? widget.lesson?.tags.join(', ') ?? '';
+    _tagsController.text = draft['tags'] as String? ?? TagUtils.format(widget.lesson?.tags ?? const []);
   }
 
   @override
@@ -139,13 +141,10 @@ class _LifeLessonSheetState extends ConsumerState<LifeLessonSheet> with DraftFor
               validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.lifeLessonContentRequired : null,
             ),
             AppSpacing.gapMd,
-            TextFormField(
+            TagsField(
               controller: _tagsController,
-              decoration: const InputDecoration(
-                labelText: AppStrings.lifeLessonTagsLabel,
-                hintText: AppStrings.lifeLessonTagsHint,
-                prefixIcon: Icon(Icons.tag_rounded),
-              ),
+              label: AppStrings.lifeLessonTagsLabel,
+              hint: AppStrings.lifeLessonTagsHint,
             ),
             AppSpacing.gapLg,
             FilledButton(

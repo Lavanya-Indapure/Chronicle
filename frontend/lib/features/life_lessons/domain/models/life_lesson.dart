@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:chronicle/core/utils/tags.dart';
 
 /// A lesson learned from life: free text, an optional title and tags.
 class LifeLesson extends Equatable {
@@ -28,7 +29,7 @@ class LifeLesson extends Equatable {
       userId: json['user_id'] as String,
       title: json['title'] as String?,
       content: json['content'] as String,
-      tags: (json['tags'] as List<dynamic>?)?.cast<String>() ?? const [],
+      tags: TagUtils.fromJson(json['tags']),
       isFavorite: json['is_favorite'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -48,13 +49,7 @@ class LifeLesson extends Equatable {
 
   /// Splits "growth, Patience ,growth" into ["growth", "Patience"]:
   /// trimmed, blanks dropped, duplicates (case-insensitive) removed.
-  static List<String> parseTags(String input) {
-    final seen = <String>{};
-    return [
-      for (final raw in input.split(','))
-        if (raw.trim().isNotEmpty && seen.add(raw.trim().toLowerCase())) raw.trim(),
-    ];
-  }
+  static List<String> parseTags(String input) => TagUtils.parse(input);
 
   @override
   List<Object?> get props => [id, userId, title, content, tags, isFavorite, createdAt, updatedAt];

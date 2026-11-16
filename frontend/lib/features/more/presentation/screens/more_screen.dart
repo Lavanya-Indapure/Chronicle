@@ -50,6 +50,8 @@ class MoreScreen extends ConsumerWidget {
             Text(AppStrings.moreLabel, style: Theme.of(context).textTheme.headlineMedium),
             AppSpacing.gapMd,
             _ProfileCard(profile: profile, onTap: () => context.push('/more/profile')),
+            AppSpacing.gapSm,
+            const _SearchEntry(),
             for (final section in _sections) ...[
               AppSpacing.gapLg,
               SectionHeader(title: section.title, compact: true),
@@ -123,6 +125,38 @@ class _ProfileCard extends StatelessWidget {
           ),
           Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
         ],
+      ),
+    );
+  }
+}
+
+/// Looks like a search box; opens the global search.
+class _SearchEntry extends StatelessWidget {
+  const _SearchEntry();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      button: true,
+      label: AppStrings.searchOpen,
+      excludeSemantics: true,
+      child: SurfaceCard(
+        onTap: () => context.push('/search'),
+        borderRadius: AppSpacing.borderRadiusPill,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md - AppSpacing.xs),
+        child: Row(
+          children: [
+            Icon(Icons.search_rounded, color: theme.colorScheme.onSurfaceVariant),
+            AppSpacing.hGapMd,
+            Expanded(
+              child: Text(
+                AppStrings.searchEverythingHint,
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

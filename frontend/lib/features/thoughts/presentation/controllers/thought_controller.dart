@@ -6,6 +6,7 @@ import 'package:chronicle/features/thoughts/domain/repositories/thought_reposito
 import 'package:chronicle/features/thoughts/data/repositories/thought_repository_impl.dart';
 import 'package:chronicle/features/thoughts/data/datasources/thought_remote_datasource.dart';
 import 'package:chronicle/core/errors/app_exception.dart';
+import 'package:chronicle/core/utils/tags.dart';
 
 class ThoughtState extends Equatable {
   final bool isLoading;
@@ -44,28 +45,18 @@ class ThoughtState extends Equatable {
   }
 
   List<Thought> get filteredThoughts {
+    final query = searchQuery.toLowerCase();
     return thoughts.where((t) {
       if (onlyFavorites && !t.isFavorite) return false;
-      if (selectedTag != null && !(t.tags?.toLowerCase().contains(selectedTag!.toLowerCase()) ?? false)) return false;
-      if (searchQuery.isNotEmpty) {
-        final query = searchQuery.toLowerCase();
-        final matchesContent = t.content.toLowerCase().contains(query);
-        final matchesTags = t.tags?.toLowerCase().contains(query) ?? false;
-        if (!matchesContent && !matchesTags) return false;
+      if (!TagUtils.has(t.tags, selectedTag)) return false;
+      if (query.isNotEmpty && !t.content.toLowerCase().contains(query) && !TagUtils.anyContains(t.tags, query)) {
+        return false;
       }
       return true;
     }).toList();
   }
 
-  List<String> get allTags {
-    final tagsSet = <String>{};
-    for (var t in thoughts) {
-      if (t.tags != null && t.tags!.isNotEmpty) {
-        tagsSet.addAll(t.tags!.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
-      }
-    }
-    return tagsSet.toList()..sort();
-  }
+  List<String> get allTags => TagUtils.collect(thoughts.map((t) => t.tags));
 
   @override
   List<Object?> get props => [isLoading, errorMessage, thoughts, searchQuery, onlyFavorites, selectedTag];
@@ -95,7 +86,7 @@ class ThoughtController extends Notifier<ThoughtState> {
     }
   }
 
-  Future<void> createThought(String content, String? tags) async {
+  Future<void> createThought(String content, List<String> tags) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.createThought(content, tags);
@@ -105,7 +96,7 @@ class ThoughtController extends Notifier<ThoughtState> {
     }
   }
 
-  Future<void> updateThought(String id, String content, String? tags) async {
+  Future<void> updateThought(String id, String content, List<String> tags) async {
     state = state.copyWith(isLoading: true);
     try {
       await _repository.updateThought(id, content, tags);

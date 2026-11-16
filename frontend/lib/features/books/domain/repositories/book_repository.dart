@@ -9,6 +9,7 @@ abstract class BookRepository {
     String status,
     double? rating,
     bool isFavorite,
+    List<String>? tags,
   });
   Future<void> updateBook({
     required String id,
@@ -18,6 +19,7 @@ abstract class BookRepository {
     required String status,
     double? rating,
     required bool isFavorite,
+    List<String>? tags,
   });
   Future<void> deleteBook(String id);
   Future<void> toggleFavorite(String id, bool currentStatus);

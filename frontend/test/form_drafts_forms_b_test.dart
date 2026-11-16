@@ -117,10 +117,11 @@ class _FakeThoughtController extends ThoughtController {
   }
 
   @override
-  Future<void> createThought(String content, String? tags) async => _finish('thought:create:$content:$tags');
+  Future<void> createThought(String content, List<String> tags) async =>
+      _finish('thought:create:$content:${tags.join(',')}');
 
   @override
-  Future<void> updateThought(String id, String content, String? tags) async => _finish('thought:update:$id:$content');
+  Future<void> updateThought(String id, String content, List<String> tags) async => _finish('thought:update:$id:$content');
 
   @override
   Future<void> deleteThought(String id) async => _finish('thought:delete:$id');
@@ -164,7 +165,7 @@ Thought _thought(String id, String content) => Thought(
       id: id,
       userId: 'u',
       content: content,
-      tags: 'life',
+      tags: const ['life'],
       isFavorite: false,
       createdAt: _now,
       updatedAt: _now,

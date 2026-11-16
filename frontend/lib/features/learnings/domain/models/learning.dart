@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:chronicle/core/utils/tags.dart';
 
 class Learning extends Equatable {
   final String id;
@@ -9,6 +10,7 @@ class Learning extends Equatable {
   final String? source;
   final int? usefulnessRating;
   final DateTime logDate;
+  final List<String> tags;
 
   const Learning({
     required this.id,
@@ -19,6 +21,7 @@ class Learning extends Equatable {
     this.source,
     this.usefulnessRating,
     required this.logDate,
+    this.tags = const [],
   });
 
   factory Learning.fromJson(Map<String, dynamic> json) {
@@ -31,6 +34,7 @@ class Learning extends Equatable {
       source: json['source'],
       usefulnessRating: json['usefulness_rating'],
       logDate: json['log_date'] != null ? DateTime.parse(json['log_date']) : DateTime.now(),
+      tags: TagUtils.fromJson(json['tags']),
     );
   }
 
@@ -42,9 +46,11 @@ class Learning extends Equatable {
       'source': source,
       'usefulness_rating': usefulnessRating,
       'log_date': logDate.toIso8601String().split('T')[0],
+      // Omitted when untagged so saving works before the tags migration.
+      'tags': ?TagUtils.forWrite(tags),
     };
   }
 
   @override
-  List<Object?> get props => [id, userId, title, description, category, source, usefulnessRating, logDate];
+  List<Object?> get props => [id, userId, title, description, category, source, usefulnessRating, logDate, tags];
 }

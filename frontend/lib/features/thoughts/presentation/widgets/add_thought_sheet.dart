@@ -4,7 +4,9 @@ import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/core/widgets/draft_form_mixin.dart';
 import 'package:chronicle/core/widgets/draft_restored_banner.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
+import 'package:chronicle/core/widgets/tags_field.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/features/thoughts/domain/models/thought.dart';
 import 'package:chronicle/features/thoughts/presentation/controllers/thought_controller.dart';
@@ -22,7 +24,7 @@ class AddThoughtSheet extends ConsumerStatefulWidget {
 class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> with DraftFormMixin<AddThoughtSheet> {
   final _formKey = GlobalKey<FormState>();
   late final _contentController = TextEditingController(text: widget.thought?.content);
-  late final _tagsController = TextEditingController(text: widget.thought?.tags);
+  late final _tagsController = TextEditingController(text: TagUtils.format(widget.thought?.tags ?? const []));
   bool _isSubmitting = false;
 
   bool get _isEditing => widget.thought != null;
@@ -41,7 +43,7 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> with DraftFor
   @override
   void restoreDraft(Map<String, Object?> draft) {
     _contentController.text = draft['content'] as String? ?? widget.thought?.content ?? '';
-    _tagsController.text = draft['tags'] as String? ?? widget.thought?.tags ?? '';
+    _tagsController.text = draft['tags'] as String? ?? TagUtils.format(widget.thought?.tags ?? const []);
   }
 
   @override
@@ -64,7 +66,7 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> with DraftFor
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final content = _contentController.text.trim();
-    final tags = _tagsController.text.trim().isEmpty ? null : _tagsController.text.trim();
+    final tags = TagUtils.parse(_tagsController.text);
     final controller = ref.read(thoughtControllerProvider.notifier);
 
     setState(() => _isSubmitting = true);
@@ -134,13 +136,10 @@ class _AddThoughtSheetState extends ConsumerState<AddThoughtSheet> with DraftFor
               validator: (v) => (v?.trim().isEmpty ?? true) ? AppStrings.thoughtContentRequired : null,
             ),
             AppSpacing.gapMd,
-            TextFormField(
+            TagsField(
               controller: _tagsController,
-              decoration: const InputDecoration(
-                labelText: AppStrings.thoughtTagsLabel,
-                hintText: AppStrings.thoughtTagsHint,
-                prefixIcon: Icon(Icons.tag_rounded),
-              ),
+              label: AppStrings.thoughtTagsLabel,
+              hint: AppStrings.thoughtTagsHint,
             ),
             AppSpacing.gapLg,
             FilledButton(

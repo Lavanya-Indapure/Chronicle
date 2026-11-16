@@ -7,7 +7,7 @@ import 'package:chronicle/core/providers/supabase_provider.dart';
 import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/core/widgets/circle_icon_button.dart';
 
-/// "(A) Hello Alex / November 2026 ............ (⚙)"
+/// "(A) Hello Alex / November 2026 ......... (🔍) (⚙)"
 class DashboardHeader extends ConsumerWidget {
   const DashboardHeader({super.key});
 
@@ -49,6 +49,12 @@ class DashboardHeader extends ConsumerWidget {
             ],
           ),
         ),
+        CircleIconButton(
+          icon: Icons.search_rounded,
+          tooltip: AppStrings.searchOpen,
+          onPressed: () => context.push('/search'),
+        ),
+        AppSpacing.hGapSm,
         CircleIconButton(
           icon: Icons.settings_outlined,
           tooltip: AppStrings.settings,

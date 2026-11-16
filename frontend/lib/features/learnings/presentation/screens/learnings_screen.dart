@@ -11,7 +11,10 @@ import 'package:chronicle/core/widgets/draft_restored_banner.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
 import 'package:chronicle/core/widgets/section_header.dart';
+import 'package:chronicle/core/utils/tags.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/core/widgets/tag_filter_row.dart';
+import 'package:chronicle/core/widgets/tags_field.dart';
 import 'package:chronicle/features/learnings/domain/models/learning.dart';
 import 'package:chronicle/features/learnings/presentation/controllers/learning_controller.dart';
 import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
@@ -64,6 +67,10 @@ class LearningsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, AppSpacing.md),
               child: AppSearchField(hint: AppStrings.learningsSearchHint, onChanged: controller.setSearchQuery),
             ),
+          if (hasAny && state.allTags.isNotEmpty) ...[
+            TagFilterRow(tags: state.allTags, selected: state.selectedTag, onSelected: controller.setSelectedTag),
+            AppSpacing.gapMd,
+          ],
           Expanded(
             child: state.isLoading && !hasAny
                 ? const Center(child: CircularProgressIndicator())
@@ -143,6 +150,14 @@ class _LearningCard extends StatelessWidget {
             AppSpacing.gapXs,
             Text(description, style: theme.textTheme.bodyMedium),
           ],
+          if (learning.tags.isNotEmpty) ...[
+            AppSpacing.gapSm,
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [for (final tag in learning.tags) TagPill(text: '#$tag', color: AppColors.chartBlue)],
+            ),
+          ],
           if (learning.usefulnessRating != null || (source != null && source.isNotEmpty)) ...[
             AppSpacing.gapMd,
             Row(
@@ -189,6 +204,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _sourceController = TextEditingController();
+  final _tagsController = TextEditingController();
   LearningCategory _category = LearningCategory.life;
   int _rating = 3;
   final DateTime _initialDate = DateTime.now();
@@ -204,6 +220,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
         'title': _titleController.text,
         'details': _descController.text,
         'source': _sourceController.text,
+        'tags': _tagsController.text,
         'category': _category,
         'rating': _rating,
         'date': _date,
@@ -214,6 +231,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
     _titleController.text = draft['title'] as String? ?? '';
     _descController.text = draft['details'] as String? ?? '';
     _sourceController.text = draft['source'] as String? ?? '';
+    _tagsController.text = draft['tags'] as String? ?? '';
     _category = draft['category'] as LearningCategory? ?? LearningCategory.life;
     _rating = draft['rating'] as int? ?? 3;
     _date = draft['date'] as DateTime? ?? _initialDate;
@@ -230,6 +248,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
     _titleController.dispose();
     _descController.dispose();
     _sourceController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -251,6 +270,7 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
             source: _orNull(_sourceController),
             usefulnessRating: _rating,
             logDate: _date,
+            tags: TagUtils.parse(_tagsController.text),
           ));
       markSubmitted();
       if (mounted) Navigator.pop(context);
@@ -303,6 +323,8 @@ class _AddLearningSheetState extends State<_AddLearningSheet> with DraftFormMixi
               prefixIcon: Icon(Icons.menu_book_outlined),
             ),
           ),
+          AppSpacing.gapMd,
+          TagsField(controller: _tagsController),
           AppSpacing.gapLg,
           Text(AppStrings.learningCategory, style: theme.textTheme.titleSmall),
           AppSpacing.gapSm,

@@ -18,6 +18,7 @@ class BookRepositoryImpl implements BookRepository {
     String status = 'reading',
     double? rating,
     bool isFavorite = false,
+    List<String>? tags,
   }) => _datasource.createBook(
         name: name,
         author: author,
@@ -25,6 +26,7 @@ class BookRepositoryImpl implements BookRepository {
         status: status,
         rating: rating,
         isFavorite: isFavorite,
+        tags: tags,
       );
 
   @override
@@ -36,6 +38,7 @@ class BookRepositoryImpl implements BookRepository {
     required String status,
     double? rating,
     required bool isFavorite,
+    List<String>? tags,
   }) => _datasource.updateBook(
         id: id,
         name: name,
@@ -44,6 +47,7 @@ class BookRepositoryImpl implements BookRepository {
         status: status,
         rating: rating,
         isFavorite: isFavorite,
+        tags: tags,
       );
 
   @override

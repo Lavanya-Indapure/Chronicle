@@ -7,7 +7,10 @@ import 'package:chronicle/core/widgets/app_search_field.dart';
 import 'package:chronicle/core/widgets/empty_state.dart';
 import 'package:chronicle/core/widgets/icon_badge.dart';
 import 'package:chronicle/core/widgets/pill_tabs.dart';
+import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/widgets/surface_card.dart';
+import 'package:chronicle/core/widgets/tag_filter_row.dart';
+import 'package:chronicle/features/learnings/presentation/widgets/journal_widgets.dart';
 import 'package:chronicle/core/widgets/star_rating.dart';
 import 'package:chronicle/features/movies/domain/models/movie.dart';
 import 'package:chronicle/features/movies/presentation/controllers/movie_controller.dart';
@@ -64,6 +67,15 @@ class MoviesScreen extends ConsumerWidget {
                         selected: state.platformFilter,
                         onChanged: controller.setPlatformFilter,
                       ),
+                      if (state.allTags.isNotEmpty) ...[
+                        AppSpacing.gapMd,
+                        TagFilterRow(
+                          tags: state.allTags,
+                          selected: state.selectedTag,
+                          onSelected: controller.setSelectedTag,
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
                       AppSpacing.gapLg,
                       // (EmptyState scrolls itself, so it can't sit inside this ListView.)
                       if (movies.isEmpty)
@@ -183,6 +195,14 @@ class _MovieCard extends StatelessWidget {
                 ),
                 AppSpacing.gapSm,
                 StarRatingDisplay(rating: movie.rating.toDouble()),
+                if (movie.tags.isNotEmpty) ...[
+                  AppSpacing.gapSm,
+                  Wrap(
+                    spacing: AppSpacing.xs,
+                    runSpacing: AppSpacing.xs,
+                    children: [for (final tag in movie.tags) TagPill(text: '#$tag', color: AppColors.chartCoral)],
+                  ),
+                ],
                 if (comment != null && comment.isNotEmpty) ...[
                   AppSpacing.gapSm,
                   Text(

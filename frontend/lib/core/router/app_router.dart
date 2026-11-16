@@ -32,6 +32,7 @@ import 'package:chronicle/features/learnings/presentation/screens/learnings_scre
 import 'package:chronicle/features/first_times/presentation/screens/first_times_screen.dart';
 import 'package:chronicle/features/moods/presentation/screens/mood_board_screen.dart';
 import 'package:chronicle/features/places/presentation/screens/places_visited_screen.dart';
+import 'package:chronicle/features/search/presentation/screens/search_screen.dart';
 
 /// Chronicle — Declarative Router with auth guard + session handling
 class AppRouter {
@@ -162,6 +163,9 @@ class AppRouter {
       GoRoute(path: '/more/miscellaneous', builder: (context, state) => const MiscellaneousScreen()),
       GoRoute(path: '/more/profile', builder: (context, state) => const ProfileScreen()),
       GoRoute(path: '/more/settings', builder: (context, state) => const SettingsScreen()),
+
+      // ── Global search (full-screen push, no bottom nav) ──
+      GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
     ],
   );
 }

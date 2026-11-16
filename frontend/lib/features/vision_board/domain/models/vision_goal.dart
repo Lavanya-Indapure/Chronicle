@@ -78,6 +78,22 @@ class VisionGoal extends Equatable {
     };
   }
 
+  VisionGoal copyWith({int? progress, String? status, bool? isFavorite}) => VisionGoal(
+        id: id,
+        userId: userId,
+        title: title,
+        description: description,
+        category: category,
+        duration: duration,
+        targetDate: targetDate,
+        plan: plan,
+        progress: progress ?? this.progress,
+        status: status ?? this.status,
+        isFavorite: isFavorite ?? this.isFavorite,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
   @override
   List<Object?> get props => [id, userId, title, description, category, duration, targetDate, plan, progress, status, isFavorite, createdAt, updatedAt];
 }

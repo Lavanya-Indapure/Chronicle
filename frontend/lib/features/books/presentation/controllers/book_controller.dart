@@ -6,6 +6,7 @@ import 'package:chronicle/features/books/domain/repositories/book_repository.dar
 import 'package:chronicle/features/books/data/repositories/book_repository_impl.dart';
 import 'package:chronicle/features/books/data/datasources/book_remote_datasource.dart';
 import 'package:chronicle/core/errors/app_exception.dart';
+import 'package:chronicle/core/utils/tags.dart';
 
 class BookState extends Equatable {
   final bool isLoading;
@@ -14,6 +15,7 @@ class BookState extends Equatable {
   final String searchQuery;
   final String? statusFilter; // 'reading', 'completed', null
   final bool onlyFavorites;
+  final String? selectedTag;
 
   const BookState({
     this.isLoading = false,
@@ -22,6 +24,7 @@ class BookState extends Equatable {
     this.searchQuery = '',
     this.statusFilter,
     this.onlyFavorites = false,
+    this.selectedTag,
   });
 
   BookState copyWith({
@@ -32,6 +35,8 @@ class BookState extends Equatable {
     String? statusFilter,
     bool? onlyFavorites,
     bool clearStatus = false,
+    String? selectedTag,
+    bool clearTag = false,
   }) {
     return BookState(
       isLoading: isLoading ?? this.isLoading,
@@ -40,6 +45,7 @@ class BookState extends Equatable {
       searchQuery: searchQuery ?? this.searchQuery,
       statusFilter: clearStatus ? null : (statusFilter ?? this.statusFilter),
       onlyFavorites: onlyFavorites ?? this.onlyFavorites,
+      selectedTag: clearTag ? null : (selectedTag ?? this.selectedTag),
     );
   }
 
@@ -47,11 +53,12 @@ class BookState extends Equatable {
     return books.where((b) {
       if (onlyFavorites && !b.isFavorite) return false;
       if (statusFilter != null && b.status != statusFilter) return false;
+      if (!TagUtils.has(b.tags, selectedTag)) return false;
       if (searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
         final matchesName = b.name.toLowerCase().contains(query);
         final matchesAuthor = b.author?.toLowerCase().contains(query) ?? false;
-        if (!matchesName && !matchesAuthor) return false;
+        if (!matchesName && !matchesAuthor && !TagUtils.anyContains(b.tags, query)) return false;
       }
       return true;
     }).toList();
@@ -60,10 +67,13 @@ class BookState extends Equatable {
   /// Number of books with [status] (null = all), for the filter tab labels.
   int countFor(String? status) => status == null ? books.length : books.where((b) => b.status == status).length;
 
-  bool get hasActiveFilters => searchQuery.isNotEmpty || statusFilter != null || onlyFavorites;
+  bool get hasActiveFilters => searchQuery.isNotEmpty || statusFilter != null || onlyFavorites || selectedTag != null;
+
+  /// Every tag used by any book, for the tag filter row.
+  List<String> get allTags => TagUtils.collect(books.map((b) => b.tags));
 
   @override
-  List<Object?> get props => [isLoading, errorMessage, books, searchQuery, statusFilter, onlyFavorites];
+  List<Object?> get props => [isLoading, errorMessage, books, searchQuery, statusFilter, onlyFavorites, selectedTag];
 }
 
 class BookController extends Notifier<BookState> {
@@ -97,6 +107,7 @@ class BookController extends Notifier<BookState> {
     String status = 'reading',
     double? rating,
     bool isFavorite = false,
+    List<String>? tags,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -107,6 +118,7 @@ class BookController extends Notifier<BookState> {
         status: status,
         rating: rating,
         isFavorite: isFavorite,
+        tags: tags,
       );
       await loadBooks();
       return true;
@@ -124,6 +136,7 @@ class BookController extends Notifier<BookState> {
     required String status,
     double? rating,
     required bool isFavorite,
+    List<String>? tags,
   }) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -135,6 +148,7 @@ class BookController extends Notifier<BookState> {
         status: status,
         rating: rating,
         isFavorite: isFavorite,
+        tags: tags,
       );
       await loadBooks();
       return true;
@@ -168,6 +182,7 @@ class BookController extends Notifier<BookState> {
   void setSearchQuery(String query) => state = state.copyWith(searchQuery: query);
   void toggleOnlyFavorites() => state = state.copyWith(onlyFavorites: !state.onlyFavorites);
   void setStatusFilter(String? status) => state = state.copyWith(statusFilter: status, clearStatus: status == null);
+  void setSelectedTag(String? tag) => state = state.copyWith(selectedTag: tag, clearTag: tag == null);
 }
 
 final bookControllerProvider = NotifierProvider<BookController, BookState>(BookController.new);
