@@ -5,7 +5,8 @@ import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/features/todos/domain/models/todo_instance.dart';
 
 /// One row inside a group card: check circle, title (+ note / carried-forward
-/// tag). Tap the circle to complete, tap the row to edit, swipe left to delete.
+/// tag) and an edit button. Tap anywhere on the row to complete; long-press
+/// or tap the pencil to edit; swipe left to delete.
 class TodoItemTile extends StatelessWidget {
   final TodoInstance instance;
   final Color accent;
@@ -59,7 +60,8 @@ class TodoItemTile extends StatelessWidget {
         child: Icon(Icons.delete_outline_rounded, color: colors.onError),
       ),
       child: InkWell(
-        onTap: onEdit,
+        onTap: onToggle,
+        onLongPress: onEdit,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
           child: Row(
@@ -90,6 +92,12 @@ class TodoItemTile extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+              IconButton(
+                onPressed: onEdit,
+                tooltip: AppStrings.editTodo,
+                visualDensity: VisualDensity.compact,
+                icon: Icon(Icons.edit_outlined, size: AppSpacing.lg - AppSpacing.xs, color: colors.onSurfaceVariant),
               ),
             ],
           ),
