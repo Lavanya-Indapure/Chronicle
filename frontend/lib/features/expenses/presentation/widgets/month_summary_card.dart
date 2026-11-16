@@ -5,75 +5,68 @@ import 'package:chronicle/core/theme/app_colors.dart';
 import 'package:chronicle/core/utils/formatters.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 
-/// Lemon card for the viewed month: total + change vs last month, budget
-/// bars (current month only — tap to manage budgets), then daily average and
-/// non-essential spend.
+/// Lemon hero for the viewed month: "Spent in November", the total, the
+/// change vs last month, and two stat tiles (per day, non-essential).
+/// Budgets live in their own section below.
 class MonthSummaryCard extends StatelessWidget {
   final ExpenseState state;
-  final VoidCallback onManageBudgets;
 
-  const MonthSummaryCard({super.key, required this.state, required this.onManageBudgets});
+  const MonthSummaryCard({super.key, required this.state});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final ink = colors.onPrimaryContainer;
-    final showBudgets = state.isViewingCurrentMonth;
-    final monthly = state.currentMonthlyBudget;
-    final weekly = state.currentWeeklyBudget;
+    final count = state.viewMonthExpenses.length;
 
     return Container(
       padding: AppSpacing.paddingCard,
-      decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: AppSpacing.borderRadiusXl),
+      decoration: BoxDecoration(color: colors.primaryContainer, borderRadius: AppSpacing.borderRadiusXxl),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(AppStrings.spentLabel, style: theme.textTheme.titleSmall?.copyWith(color: ink)),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        AppFormatters.currency(state.viewMonthSpent),
-                        style: theme.textTheme.displayMedium?.copyWith(color: ink),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '${AppStrings.spentIn} ${AppFormatters.monthName(state.viewMonth)}',
+                  style: theme.textTheme.titleSmall?.copyWith(color: ink),
                 ),
               ),
               _ComparisonBadge(state: state),
             ],
           ),
-          if (showBudgets) ...[
-            AppSpacing.gapMd,
-            if (monthly <= 0 && weekly <= 0)
-              _SetBudgetLink(onTap: onManageBudgets)
-            else ...[
-              if (monthly > 0)
-                _BudgetBar(label: AppStrings.monthly, spent: state.spentThisMonth, budget: monthly, onTap: onManageBudgets),
-              if (monthly > 0 && weekly > 0) AppSpacing.gapSm,
-              if (weekly > 0)
-                _BudgetBar(label: AppStrings.weekly, spent: state.spentThisWeek, budget: weekly, onTap: onManageBudgets),
-            ],
-          ],
-          AppSpacing.gapMd,
-          Divider(height: 1, color: ink.withValues(alpha: 0.12)),
+          AppSpacing.gapXs,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              AppFormatters.currency(state.viewMonthSpent),
+              style: theme.textTheme.displayMedium?.copyWith(color: ink, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(
+            '$count ${count == 1 ? AppStrings.expenseSingular : AppStrings.expensePlural}',
+            style: theme.textTheme.bodySmall?.copyWith(color: ink.withValues(alpha: 0.7)),
+          ),
           AppSpacing.gapMd,
           Row(
             children: [
-              Expanded(child: _InlineStat(value: AppFormatters.currency(state.viewMonthDailyAverage), label: AppStrings.dailyAvgLower)),
               Expanded(
-                child: _InlineStat(
+                child: _StatTile(
+                  icon: Icons.calendar_today_rounded,
+                  value: AppFormatters.currency(state.viewMonthDailyAverage),
+                  label: AppStrings.perDayLower,
+                ),
+              ),
+              AppSpacing.hGapSm,
+              Expanded(
+                child: _StatTile(
+                  icon: Icons.local_fire_department_rounded,
+                  iconColor: AppColors.warning,
                   value: AppFormatters.currency(state.viewMonthNonEssential),
                   label: AppStrings.nonEssentialLower,
-                  dotColor: AppColors.warning,
                 ),
               ),
             ],
@@ -122,129 +115,46 @@ class _ComparisonBadge extends StatelessWidget {
   }
 }
 
-/// "Monthly ▓▓▓▓░░ ₹8,261 left ›" — tap to manage budgets.
-class _BudgetBar extends StatelessWidget {
-  final String label;
-  final double spent;
-  final double budget;
-  final VoidCallback onTap;
-
-  const _BudgetBar({required this.label, required this.spent, required this.budget, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final ink = theme.colorScheme.onPrimaryContainer;
-    final over = spent > budget;
-    final status = over
-        ? '${AppStrings.budgetOverPrefix} ${AppFormatters.currency(spent - budget)}'
-        : '${AppFormatters.currency(budget - spent)} ${AppStrings.budgetLeftSuffix} ${AppFormatters.currency(budget)}';
-    final statusColor = over ? AppColors.error : ink;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppSpacing.borderRadiusSm,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(label, style: theme.textTheme.labelMedium?.copyWith(color: ink)),
-                AppSpacing.hGapSm,
-                Expanded(
-                  child: Text(
-                    status,
-                    style: theme.textTheme.labelSmall?.copyWith(color: statusColor),
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, size: AppSpacing.md, color: ink),
-              ],
-            ),
-            AppSpacing.gapXs,
-            ClipRRect(
-              borderRadius: AppSpacing.borderRadiusPill,
-              child: LinearProgressIndicator(
-                value: (spent / budget).clamp(0.0, 1.0),
-                minHeight: AppSpacing.progressBarHeight - 2,
-                color: over ? AppColors.error : ink,
-                backgroundColor: ink.withValues(alpha: 0.12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SetBudgetLink extends StatelessWidget {
-  final VoidCallback onTap;
-
-  const _SetBudgetLink({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final ink = theme.colorScheme.onPrimaryContainer;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AppSpacing.borderRadiusSm,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_circle_outline_rounded, size: AppSpacing.md + 2, color: ink),
-            AppSpacing.hGapXs,
-            Text(AppStrings.setBudgetCta, style: theme.textTheme.labelLarge?.copyWith(color: ink)),
-            Icon(Icons.chevron_right_rounded, size: AppSpacing.md + 2, color: ink),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// "₹1,116 daily avg" on one line.
-class _InlineStat extends StatelessWidget {
+/// Translucent tile on the lemon card: icon, value, label.
+class _StatTile extends StatelessWidget {
+  final IconData icon;
+  final Color? iconColor;
   final String value;
   final String label;
-  final Color? dotColor;
 
-  const _InlineStat({required this.value, required this.label, this.dotColor});
+  const _StatTile({required this.icon, required this.value, required this.label, this.iconColor});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final ink = theme.colorScheme.onPrimaryContainer;
-    return Row(
-      children: [
-        if (dotColor != null) ...[
-          Container(
-            width: AppSpacing.accentDotSize,
-            height: AppSpacing.accentDotSize,
-            decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
-          ),
-          AppSpacing.hGapXs,
-        ],
-        Flexible(
-          child: Text.rich(
-            TextSpan(
-              text: value,
-              style: theme.textTheme.titleSmall?.copyWith(color: ink, fontWeight: FontWeight.w700),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + AppSpacing.xs, vertical: AppSpacing.sm + AppSpacing.xs),
+      decoration: BoxDecoration(color: ink.withValues(alpha: 0.07), borderRadius: AppSpacing.borderRadiusLg),
+      child: Row(
+        children: [
+          Icon(icon, size: AppSpacing.md + 2, color: iconColor ?? ink),
+          AppSpacing.hGapSm,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextSpan(text: ' $label', style: theme.textTheme.bodySmall?.copyWith(color: ink)),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(value, style: theme.textTheme.titleSmall?.copyWith(color: ink, fontWeight: FontWeight.w700)),
+                ),
+                Text(
+                  label,
+                  style: theme.textTheme.bodySmall?.copyWith(color: ink.withValues(alpha: 0.75)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

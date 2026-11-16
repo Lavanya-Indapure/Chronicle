@@ -1,42 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
 import 'package:chronicle/features/expenses/domain/models/budget.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
-
-/// Sheet letting the user pick which budget (weekly/monthly) to set.
-Future<void> showBudgetOptionsSheet(BuildContext context, WidgetRef ref) {
-  return showModalBottomSheet(
-    context: context,
-    builder: (sheetContext) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.md),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.calendar_view_week_rounded),
-              title: const Text(AppStrings.setWeeklyBudget),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                showSetBudgetDialog(context, ref, BudgetType.weekly);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month_rounded),
-              title: const Text(AppStrings.setMonthlyBudget),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                showSetBudgetDialog(context, ref, BudgetType.monthly);
-              },
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
 /// Asks for an amount, confirms, then saves the budget.
 Future<void> showSetBudgetDialog(BuildContext context, WidgetRef ref, BudgetType type) {
@@ -57,7 +23,15 @@ class _SetBudgetDialog extends StatefulWidget {
 }
 
 class _SetBudgetDialogState extends State<_SetBudgetDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller = TextEditingController(text: _currentAmount());
+
+  /// Pre-fills the budget in force today, so editing doesn't start blank.
+  String _currentAmount() {
+    final state = widget.ref.read(expenseControllerProvider);
+    final amount = widget.type == BudgetType.weekly ? state.currentWeeklyBudget : state.currentMonthlyBudget;
+    if (amount <= 0) return '';
+    return amount == amount.roundToDouble() ? amount.toInt().toString() : amount.toString();
+  }
 
   @override
   void dispose() {

@@ -678,6 +678,21 @@ abstract final class AppStrings {
   static const String visionMilestonesUnavailable =
       'Milestones aren’t set up yet. Run the vision milestones migration in Supabase to enable them.';
 
+  // ── Budgets ──
+  static const String expenseSingular = 'expense';
+  static const String expensePlural = 'expenses';
+  static const String perDayLower = 'per day';
+  static const String perDaySuffix = '/day';
+  static const String budgetFor = 'Budget for';
+  static const String budgetLower = 'budget';
+  static const String budgetUnderBy = 'under budget';
+  static const String budgetOverBy = 'Over by';
+  static const String dayLeftSuffix = 'day left';
+  static const String daysLeftSuffix = 'days left';
+  static const String budgetSpendingFast = 'Spending fast';
+  static const String setWeeklyBudgetCta = 'Set weekly budget';
+  static const String setMonthlyBudgetCta = 'Set monthly budget';
+
   // ── Expense comparisons ──
   static const String compareTitle = 'Compare';
   static const String compareDay = 'Day';

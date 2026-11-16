@@ -536,13 +536,13 @@ class _ChangeRow extends StatelessWidget {
           Expanded(
             child: Text(change.name ?? AppStrings.uncategorized, style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis),
           ),
-          Text(
-            '${AppFormatters.currency(change.previous)} → ${AppFormatters.currency(change.current)}',
-            style: theme.textTheme.bodySmall,
-          ),
+          // Arrow as an icon: Poppins has no "→" glyph.
+          Text(AppFormatters.currency(change.previous), style: theme.textTheme.bodySmall),
+          Icon(Icons.arrow_forward_rounded, size: AppSpacing.sm + AppSpacing.xs, color: theme.colorScheme.onSurfaceVariant),
+          Text(AppFormatters.currency(change.current), style: theme.textTheme.bodySmall),
           AppSpacing.hGapSm,
           Text(
-            '${more ? '+' : '−'}${AppFormatters.currency(change.delta.abs())}',
+            '${more ? '+' : '-'}${AppFormatters.currency(change.delta.abs())}',
             style: theme.textTheme.labelMedium?.copyWith(color: more ? _moreColor : _lessColor, fontWeight: FontWeight.w600),
           ),
         ],

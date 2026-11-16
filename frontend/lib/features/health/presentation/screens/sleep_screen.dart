@@ -128,7 +128,7 @@ class _SleepEntryCard extends StatelessWidget {
               children: [
                 Text(AppFormatters.weekdayDayMonth(record.endTime!), style: theme.textTheme.titleSmall),
                 Text(
-                  '${clockTime(context, record.startTime)} → ${clockTime(context, record.endTime!)}',
+                  '${clockTime(context, record.startTime)} – ${clockTime(context, record.endTime!)}',
                   style: theme.textTheme.bodySmall,
                 ),
               ],

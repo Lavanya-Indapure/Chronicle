@@ -50,9 +50,22 @@ class ExpenseRemoteDatasource {
     return List<Map<String, dynamic>>.from(response);
   }
 
+  /// One row per (type, start day): changing a budget again on the same day
+  /// updates that row (a plain insert would hit the unique constraint on
+  /// user_id + start_date + budget_type); a new day adds a history row.
   Future<void> upsertBudget(Map<String, dynamic> data) async {
-    // Unique constraint on (user_id, start_date, budget_type) handles the upsert
-    await client.from('budget_history').upsert(data);
+    final existing = await client
+        .from('budget_history')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('budget_type', data['budget_type'] as String)
+        .eq('start_date', data['start_date'] as String)
+        .limit(1);
+    if (existing.isEmpty) {
+      await client.from('budget_history').insert(data);
+    } else {
+      await client.from('budget_history').update({'amount': data['amount']}).eq('id', existing.first['id'] as String);
+    }
   }
 
   // ── Transactions (Lending/Borrowing) ──

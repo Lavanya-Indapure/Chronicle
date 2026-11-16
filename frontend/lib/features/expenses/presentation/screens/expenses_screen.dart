@@ -15,6 +15,7 @@ import 'package:chronicle/features/expenses/presentation/expense_navigation.dart
 import 'package:chronicle/features/expenses/presentation/screens/expense_history_screen.dart';
 import 'package:chronicle/features/expenses/presentation/screens/transaction_history_screen.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/budget_dialogs.dart';
+import 'package:chronicle/features/expenses/presentation/widgets/budget_section.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/category_summary_card.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/category_visuals.dart';
 import 'package:chronicle/features/expenses/presentation/widgets/comparison_card.dart';
@@ -86,9 +87,15 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
                       onMonthSelected: _controller.showMonth,
                     ),
                     AppSpacing.gapMd,
-                    MonthSummaryCard(
-                      state: state,
-                      onManageBudgets: () => showBudgetOptionsSheet(context, ref),
+                    MonthSummaryCard(state: state),
+                    AppSpacing.gapLg,
+                    BudgetSection(
+                      weekly: state.weeklyBudgetStatus,
+                      monthly: state.monthlyBudgetStatus,
+                      // Weekly budgets are about this week only.
+                      showWeekly: state.isViewingCurrentMonth,
+                      pastMonth: state.isViewingCurrentMonth ? null : state.viewMonth,
+                      onEdit: (type) => showSetBudgetDialog(context, ref, type),
                     ),
                     if (breakdown.isNotEmpty) ...[
                       AppSpacing.gapMd,

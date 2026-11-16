@@ -5,6 +5,7 @@ import 'package:chronicle/core/errors/app_exception.dart';
 import 'package:chronicle/core/services/logger_service.dart';
 import 'package:chronicle/features/expenses/data/datasources/expense_remote_datasource.dart';
 import 'package:chronicle/features/expenses/data/repositories/expense_repository_impl.dart';
+import 'package:chronicle/features/expenses/domain/budget_status.dart';
 import 'package:chronicle/features/expenses/domain/expense_comparison.dart';
 import 'package:chronicle/features/expenses/domain/models/expense.dart';
 import 'package:chronicle/features/expenses/domain/models/budget.dart';
@@ -167,13 +168,44 @@ class ExpenseState {
   double get totalSpent => expenses.fold(0, (sum, e) => sum + e.amount);
   double get unnecessarySpent => expenses.where((e) => !e.isNecessary).fold(0, (sum, e) => sum + e.amount);
   
-  double get currentMonthlyBudget => budgets
-      .where((b) => b.type == BudgetType.monthly)
-      .fold(0.0, (sum, b) => b.amount); // Simplification: taking latest or first
+  /// Budgets in force today (0 when not set).
+  double get currentMonthlyBudget => Budgets.effective(budgets, BudgetType.monthly, DateTime.now())?.amount ?? 0;
+  double get currentWeeklyBudget => Budgets.effective(budgets, BudgetType.weekly, DateTime.now())?.amount ?? 0;
 
-  double get currentWeeklyBudget => budgets
-      .where((b) => b.type == BudgetType.weekly)
-      .fold(0.0, (sum, b) => b.amount);
+  /// This week against the weekly budget in force today; null if none set.
+  BudgetStatus? get weeklyBudgetStatus {
+    final now = DateTime.now();
+    final budget = Budgets.effective(budgets, BudgetType.weekly, now);
+    if (budget == null) return null;
+    final (start, end) = Budgets.weekOf(now);
+    return BudgetStatus(
+      type: BudgetType.weekly,
+      budget: budget.amount,
+      spent: spentThisWeek,
+      periodStart: start,
+      periodEnd: end,
+      today: now,
+    );
+  }
+
+  /// The viewed month against the monthly budget in force for it (today's for
+  /// the current month, the one in force on its last day for past months —
+  /// budgets are kept as history); null if none applied.
+  BudgetStatus? get monthlyBudgetStatus {
+    final now = DateTime.now();
+    final (start, end) = Budgets.monthOf(viewMonth);
+    final budget = Budgets.effective(budgets, BudgetType.monthly, isViewingCurrentMonth ? now : end);
+    if (budget == null) return null;
+    return BudgetStatus(
+      type: BudgetType.monthly,
+      budget: budget.amount,
+      spent: viewMonthSpent,
+      periodStart: start,
+      periodEnd: end,
+      // A past month is over: measure from the day after it ended.
+      today: isViewingCurrentMonth ? now : end.add(const Duration(days: 1)),
+    );
+  }
 
   double get youOwe => transactions
       .where((t) => t.type == TransactionType.BORROW && t.status == TransactionStatus.pending)

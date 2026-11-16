@@ -347,9 +347,17 @@ void main() {
       size: const Size(360, height),
     );
     expect(tester.takeException(), isNull);
-    // Both budget bars on the summary card (fake data sets weekly + monthly).
+    // Both budget tiles in the Budgets section (fake data sets weekly + monthly).
+    expect(find.text(AppStrings.budgets), findsOneWidget);
     expect(find.text(AppStrings.monthly), findsOneWidget);
     expect(find.text(AppStrings.weekly), findsOneWidget);
+
+    // Tapping a tile opens the editor pre-filled with the current amount.
+    await tester.tap(find.text(AppStrings.weekly));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextField, '5000'), findsOneWidget);
+    await tester.tap(find.text(AppStrings.cancel));
+    await tester.pumpAndSettle();
     // Compact category card + one-line debts row.
     expect(find.text(AppStrings.whereItWent), findsOneWidget);
     expect(find.text('${AppStrings.debts} · 2'), findsOneWidget);
