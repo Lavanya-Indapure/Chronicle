@@ -44,7 +44,7 @@ class PlaceController extends Notifier<PlaceState> {
   @override
   PlaceState build() {
     _repository = ref.watch(placeRepositoryProvider);
-    _loadPlaces();
+    Future.microtask(_loadPlaces);
     return const PlaceState();
   }
 

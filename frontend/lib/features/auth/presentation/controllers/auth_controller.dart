@@ -81,7 +81,9 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> signOut() async {
     await _repository.signOut();
-    state = const AuthState();
+    // Signing out replaces the whole ProviderScope (UserSessionScope), so
+    // this controller may already be disposed.
+    if (ref.mounted) state = const AuthState();
   }
 
   Future<bool> resetPassword(String email) async {

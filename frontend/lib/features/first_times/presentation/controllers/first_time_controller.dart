@@ -29,7 +29,7 @@ class FirstTimeController extends Notifier<FirstTimeState> {
   @override
   FirstTimeState build() {
     _repository = FirstTimeRepositoryImpl(FirstTimeRemoteDatasourceImpl(Supabase.instance.client));
-    _loadFirstTimes();
+    Future.microtask(_loadFirstTimes);
     return const FirstTimeState();
   }
 

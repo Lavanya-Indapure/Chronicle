@@ -7,6 +7,7 @@ import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/router/app_router.dart';
+import 'core/widgets/user_session_scope.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,9 +26,13 @@ void main() async {
   await notifications.init();
   notifications.onOpenRoute = AppRouter.router.go;
 
+  final auth = Supabase.instance.client.auth;
   runApp(
-    const ProviderScope(
-      child: ChronicleApp(),
+    UserSessionScope(
+      userIds: auth.onAuthStateChange.map((event) => event.session?.user.id),
+      initialUserId: auth.currentUser?.id,
+      onSignedOut: notifications.cancelAll,
+      child: const ChronicleApp(),
     ),
   );
 

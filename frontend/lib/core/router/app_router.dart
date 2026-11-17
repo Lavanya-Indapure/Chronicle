@@ -54,6 +54,11 @@ class AppRouter {
       final isAuthRoute = location == '/login' || location == '/signup' || location == '/forgot-password';
 
       if (!isAuth && !isAuthRoute) return '/login';
+      // Opened from a password-reset email: the user is signed in with a
+      // recovery session and must set a new password before anything else.
+      if (isAuth && _authNotifier.isRecoveringPassword) {
+        return location == '/reset-password' ? null : '/reset-password';
+      }
       if (isAuth && isAuthRoute) return '/dashboard';
 
       return null;
@@ -168,6 +173,10 @@ class AppRouter {
       GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
     ],
   );
+
+  /// Call once the new password is saved, so the router stops forcing
+  /// `/reset-password`.
+  static void finishPasswordRecovery() => _authNotifier.finishPasswordRecovery();
 }
 
 /// A [ChangeNotifier] that listens to Supabase auth state changes
@@ -175,10 +184,26 @@ class AppRouter {
 class _AuthNotifier extends ChangeNotifier {
   late final StreamSubscription<AuthState> _subscription;
 
+  /// True between opening a password-reset link and saving the new password.
+  bool isRecoveringPassword = false;
+
   _AuthNotifier() {
-    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((_) {
+    _subscription = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      switch (state.event) {
+        case AuthChangeEvent.passwordRecovery:
+          isRecoveringPassword = true;
+        case AuthChangeEvent.signedOut:
+          isRecoveringPassword = false;
+        default:
+          break;
+      }
       notifyListeners();
     });
+  }
+
+  void finishPasswordRecovery() {
+    isRecoveringPassword = false;
+    notifyListeners();
   }
 
   @override

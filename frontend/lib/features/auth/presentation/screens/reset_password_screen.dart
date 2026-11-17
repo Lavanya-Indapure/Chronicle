@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
 import 'package:chronicle/core/constants/app_strings.dart';
+import 'package:chronicle/core/errors/error_handler.dart';
+import 'package:chronicle/core/router/app_router.dart';
 import 'package:chronicle/features/auth/presentation/widgets/auth_header.dart';
 import 'package:chronicle/features/auth/presentation/widgets/auth_text_field.dart';
 import 'package:chronicle/features/auth/presentation/widgets/auth_submit_button.dart';
@@ -20,6 +22,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -29,13 +32,15 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   Future<void> _handleUpdatePassword() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_isLoading || !_formKey.currentState!.validate()) return;
 
+    setState(() => _isLoading = true);
     final client = Supabase.instance.client;
     try {
       await client.auth.updateUser(
         UserAttributes(password: _passwordController.text),
       );
+      AppRouter.finishPasswordRecovery();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Password updated successfully!')),
@@ -43,11 +48,9 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
         context.go('/dashboard');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      }
+      if (mounted) ErrorHandler.showError(context, e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -109,7 +112,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                   // Submit
                   AuthSubmitButton(
                     label: 'Update Password',
-                    isLoading: false, // For simplicity
+                    isLoading: _isLoading,
                     onPressed: _handleUpdatePassword,
                   ),
                 ],

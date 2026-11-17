@@ -172,6 +172,17 @@ class NotificationService {
     );
   }
 
+  /// Cancels every pending notification (e.g. on sign-out, so the previous
+  /// user's reminders stop firing).
+  Future<void> cancelAll() async {
+    if (!_ready) return;
+    try {
+      await _plugin.cancelAll();
+    } catch (e, st) {
+      LoggerService.error('Cancelling notifications failed', error: e, stackTrace: st, tag: 'Notify');
+    }
+  }
+
   /// Cancels every pending notification whose id is in [from, to).
   Future<void> cancelRange(int from, int to) async {
     if (!_ready) return;

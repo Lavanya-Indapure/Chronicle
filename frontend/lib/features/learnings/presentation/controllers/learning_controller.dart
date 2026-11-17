@@ -60,7 +60,7 @@ class LearningController extends Notifier<LearningState> {
   @override
   LearningState build() {
     _repository = ref.watch(learningRepositoryProvider);
-    _loadLearnings();
+    Future.microtask(_loadLearnings);
     return const LearningState();
   }
 
