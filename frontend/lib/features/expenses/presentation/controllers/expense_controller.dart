@@ -27,6 +27,16 @@ final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
   return ExpenseRepositoryImpl(datasource);
 });
 
+/// Whether [date] falls on a calendar day from [start] to [end], both
+/// inclusive (a null bound is open). Time of day is ignored on all three, so
+/// a range ending 31 Oct includes everything on 31 Oct and nothing on 1 Nov.
+bool isWithinDays(DateTime date, DateTime? start, DateTime? end) {
+  final day = DateTime(date.year, date.month, date.day);
+  if (start != null && day.isBefore(DateTime(start.year, start.month, start.day))) return false;
+  if (end != null && day.isAfter(DateTime(end.year, end.month, end.day))) return false;
+  return true;
+}
+
 // ── State ──
 
 class ExpenseState {
@@ -107,12 +117,7 @@ class ExpenseState {
       if (transactionFilters.minAmount != null && t.amount < transactionFilters.minAmount!) return false;
       if (transactionFilters.maxAmount != null && t.amount > transactionFilters.maxAmount!) return false;
 
-      if (transactionFilters.startDate != null) {
-        if (t.date.isBefore(transactionFilters.startDate!)) return false;
-      }
-      if (transactionFilters.endDate != null) {
-        if (t.date.isAfter(transactionFilters.endDate!.add(const Duration(days: 1)))) return false;
-      }
+      if (!isWithinDays(t.date, transactionFilters.startDate, transactionFilters.endDate)) return false;
 
       return true;
     }).toList();
@@ -135,12 +140,7 @@ class ExpenseState {
       if (expenseFilters.minAmount != null && e.amount < expenseFilters.minAmount!) return false;
       if (expenseFilters.maxAmount != null && e.amount > expenseFilters.maxAmount!) return false;
 
-      if (expenseFilters.startDate != null) {
-        if (e.expenseDate.isBefore(expenseFilters.startDate!)) return false;
-      }
-      if (expenseFilters.endDate != null) {
-        if (e.expenseDate.isAfter(expenseFilters.endDate!.add(const Duration(days: 1)))) return false;
-      }
+      if (!isWithinDays(e.expenseDate, expenseFilters.startDate, expenseFilters.endDate)) return false;
 
       return true;
     }).toList();

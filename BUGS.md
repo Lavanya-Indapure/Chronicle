@@ -9,7 +9,7 @@ section with the next free ID. Never reuse an ID.
 **(unverified)** means the bug is plausible from the code but depends on timing or on database
 tables that aren't in `supabase/migrations/`; confirm before fixing.
 
-**Summary (last updated 2026-11-17):** 54 bugs — 5 High, 18 Medium, 31 Low. Fixed: 3 High + 1 Low.
+**Summary (last updated 2026-11-17):** 54 bugs — 5 High, 18 Medium, 31 Low. Fixed: all 5 High (H03 still needs the Supabase step) + 1 Low (L20).
 
 ---
 
@@ -32,13 +32,15 @@ tables that aren't in `supabase/migrations/`; confirm before fixing.
   - Not covered: macOS/Windows/Linux deep links. On web the link goes to the Site URL, which must be the web app.
   - Needs a real-device check (email link → app → new password → dashboard).
 
-- [ ] **H04 — Expense and transaction date filters include the day after the end date.** · Status: Open
-  - Where: [expense_controller.dart:114](frontend/lib/features/expenses/presentation/controllers/expense_controller.dart#L114) and [:142](frontend/lib/features/expenses/presentation/controllers/expense_controller.dart#L142)
-  - Scenario: `isAfter(endDate + 1 day)` lets an item dated exactly endDate+1 through. Viewing October's history also lists 1 November.
+- [x] **H04 — Expense and transaction date filters include the day after the end date.** · Status: **Fixed** (2026-11-17)
+  - Where: `filteredExpenses` / `filteredTransactions` in [expense_controller.dart](frontend/lib/features/expenses/presentation/controllers/expense_controller.dart)
+  - Scenario: `isAfter(endDate + 1 day)` let an item dated exactly endDate+1 through. Viewing October's history also listed 1 November.
+  - Fix: new top-level `isWithinDays(date, start, end)` compares calendar days, both ends inclusive. Test: [expense_date_filters_test.dart](frontend/test/expense_date_filters_test.dart) (October tests fail on the old code).
 
-- [ ] **H05 — Expense date-range picker crashes when the current month is filtered.** · Status: Open
-  - Where: [expense_filter_sheet.dart:159](frontend/lib/features/expenses/presentation/widgets/expense_filter_sheet.dart#L159)
-  - Scenario: `lastDate: DateTime.now()` but `initialDateRange` ends 30 Nov → Flutter assertion (red screen in debug). A month before 2020 trips the `firstDate` assert the same way.
+- [x] **H05 — Expense date-range picker crashes when the current month is filtered.** · Status: **Fixed** (2026-11-17)
+  - Where: [expense_filter_sheet.dart](frontend/lib/features/expenses/presentation/widgets/expense_filter_sheet.dart), and the same pattern in [transaction_filter_sheet.dart](frontend/lib/features/expenses/presentation/widgets/transaction_filter_sheet.dart)
+  - Scenario: `lastDate: DateTime.now()` but `initialDateRange` ended 30 Nov → Flutter assertion (red screen in debug). A filter starting before 2020 tripped the `firstDate` assert (both sheets).
+  - Fix: new [date_ranges.dart](frontend/lib/core/utils/date_ranges.dart) `pickerBounds(...)` widens firstDate/lastDate just enough to contain the active filter; both sheets use it. Test: picker group in [expense_date_filters_test.dart](frontend/test/expense_date_filters_test.dart) (fails on the old code with both assertions).
 
 ## Medium
 

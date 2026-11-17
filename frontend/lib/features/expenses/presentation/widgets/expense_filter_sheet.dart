@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/utils/date_ranges.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 
 class ExpenseFilterSheet extends ConsumerStatefulWidget {
@@ -156,13 +157,15 @@ class _ExpenseFilterSheetState extends ConsumerState<ExpenseFilterSheet> {
             AppSpacing.gapSm,
             OutlinedButton.icon(
               onPressed: () async {
+                final initial = _filters.startDate != null && _filters.endDate != null
+                    ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
+                    : null;
+                final bounds = pickerBounds(first: DateTime(2020), last: DateTime.now(), initial: initial);
                 final range = await showDateRangePicker(
                   context: context,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime.now(),
-                  initialDateRange: _filters.startDate != null && _filters.endDate != null
-                      ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
-                      : null,
+                  firstDate: bounds.start,
+                  lastDate: bounds.end,
+                  initialDateRange: initial,
                 );
                 if (range != null) {
                   setState(() => _filters = _filters.copyWith(startDate: range.start, endDate: range.end));

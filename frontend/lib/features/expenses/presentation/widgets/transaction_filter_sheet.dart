@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:chronicle/core/constants/app_spacing.dart';
+import 'package:chronicle/core/utils/date_ranges.dart';
 import 'package:chronicle/features/expenses/presentation/controllers/expense_controller.dart';
 import 'package:chronicle/features/expenses/domain/models/transaction.dart';
 import 'package:chronicle/core/widgets/keyboard_aware_sheet.dart';
@@ -132,13 +133,19 @@ class _TransactionFilterSheetState extends ConsumerState<TransactionFilterSheet>
           AppSpacing.gapSm,
           OutlinedButton.icon(
             onPressed: () async {
+              final initial = _filters.startDate != null && _filters.endDate != null
+                  ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
+                  : null;
+              final bounds = pickerBounds(
+                first: DateTime(2020),
+                last: DateTime.now().add(const Duration(days: 365)),
+                initial: initial,
+              );
               final range = await showDateRangePicker(
                 context: context,
-                firstDate: DateTime(2020),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-                initialDateRange: _filters.startDate != null && _filters.endDate != null
-                    ? DateTimeRange(start: _filters.startDate!, end: _filters.endDate!)
-                    : null,
+                firstDate: bounds.start,
+                lastDate: bounds.end,
+                initialDateRange: initial,
               );
               if (range != null) {
                 setState(() => _filters = _filters.copyWith(startDate: range.start, endDate: range.end));
